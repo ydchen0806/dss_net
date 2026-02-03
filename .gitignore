@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# PyTorch checkpoints (大文件，需要单独下载)
+*.pth
+*.pt
+*.ckpt
+
+# TensorBoard logs
+events.out.tfevents.*
+*.tfevents.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 大型数据文件
+*.mat
+*.npy
+*.npz
+*.h5
+*.hdf5
+
+# 压缩包
+*.zip
+*.tar.gz
+*.rar
+
+# 日志目录
+logs/
+logs_*/
+
+# 实验结果中的大文件目录（保留结构但不上传checkpoint）
+**/checkpoints/
+**/logs/
+
+# 临时文件
+temp_*.yaml
+*.tmp
+*.temp
+

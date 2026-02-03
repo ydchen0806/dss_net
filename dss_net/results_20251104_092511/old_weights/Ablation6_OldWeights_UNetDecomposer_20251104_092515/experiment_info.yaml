@@ -1,0 +1,6 @@
+experiment_name: Ablation6_OldWeights
+is_ablation: false
+model_name: UNetDecomposer
+output_dir: results_20251104_092511/old_weights/Ablation6_OldWeights_UNetDecomposer_20251104_092515
+temporal_enabled: true
+timestamp: '20251104_092515'

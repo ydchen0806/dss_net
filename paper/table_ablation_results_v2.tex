@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{Ablation Study Results on Test Set}
+\label{tab:ablation_results}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Configuration} & \textbf{Total NMSE (dB)} & \textbf{Static NMSE (dB)} & \textbf{Dynamic NMSE (dB)} & \textbf{Gain (dB)} \\
+\midrule
+\textbf{w/o Regularization} & \textbf{-25.27} & \textbf{-25.61} & \textbf{-17.37} & \textbf{+4.86} \\
+w/o Temporal & -25.02 & -25.23 & -17.40 & +4.61 \\
+w/o Static Smooth & -24.27 & -24.99 & -17.62 & +3.87 \\
+DSS-Net (Full) & -24.05 & -24.60 & -17.14 & +3.64 \\
+w/o Separation & -23.97 & -24.52 & -16.89 & +3.56 \\
+w/o Attention & -23.75 & -23.76 & -17.13 & +3.34 \\
+w/o Optimized Weights & -20.41 & -20.00 & -13.41 & +0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}

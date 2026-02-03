@@ -1,0 +1,18 @@
+best_epoch: 61
+best_val_loss: 0.03756050565452487
+best_val_metrics:
+  dynamic_mse: 0.002272138889465067
+  dynamic_nmse_db: -17.011569729557745
+  dynamic_temporal: 0.0
+  static_mse: 0.003426030002258442
+  static_nmse_db: -24.275990733393915
+  static_temporal: 1.677322091879668
+  total_mse: 0.00409379942101185
+  total_nmse_db: -24.383174119172274
+experiment_name: Ablation4_NoAttention
+final_train_loss: 0.0905471179357245
+final_val_loss: 0.04654354822856409
+is_baseline: false
+model_name: UNetDecomposer
+total_epochs: 91
+training_completed: '2025-11-04 19:21:46'

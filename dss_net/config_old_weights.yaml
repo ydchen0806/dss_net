@@ -1,0 +1,95 @@
+# ====================================================================
+# 消融实验6: 原始损失权重（改进前的配置）
+# 目的: 对比新旧损失权重的差异
+# ====================================================================
+experiment:
+  name: "Ablation6_OldWeights"
+  seed: 42
+  output_dir: "./experiments1017"
+  
+data:
+  data_dir: "/LSEM/user/chenyinda/code/signal_xiaoyu"
+  pattern: "2D_channel_for_DSS/Tx_all_2D_*.mat"
+  max_files: null
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  normalize_method: "power"
+  complex_representation: "real_imag"
+  num_workers: 4
+  pin_memory: true
+  augmentation:
+    enabled: true
+    spatial_masking:
+      prob: 0.3
+      mask_ratio: 0.1
+    noise_injection:
+      prob: 0.3
+      snr_range: [20, 35]
+
+model:
+  name: "UNetDecomposer"
+  in_channels: 2
+  base_channels: 64
+  depth: 4
+  output_heads:
+    static: 2
+    dynamic: 2
+  activation: "leaky_relu"
+  norm_type: "batch"
+  dropout: 0.1
+  use_attention: true
+  ablation:
+    enabled: false
+
+loss:
+  weights:
+    static_mse: 1.0
+    dynamic_mse: 1.0      # 🔬 原始权重（未加大）
+    total_mse: 2.0        # 🔬 原始权重
+    static_l1: 0.1        # 🔬 原始权重（更强）
+    dynamic_nuclear: 0.1  # 🔬 原始权重（更强）
+    static_temporal: 0.05 # 🔬 原始权重
+    dynamic_temporal: 0.05
+  sparsity_lambda: 0.001  # 🔬 原始lambda（更强）
+  nuclear_lambda: 0.001
+  separation_weight: 0.05
+  temporal_correlation:
+    enabled: true
+    static_smooth: true
+    dynamic_varying: true
+    dim: -1
+
+training:
+  optimizer: "adamw"
+  learning_rate: 5.0e-4   # 🔬 原始学习率（更低）
+  weight_decay: 1.0e-4
+  scheduler:
+    type: "cosine"
+    warmup_epochs: 10     # 🔬 原始warmup（更长）
+    min_lr: 5.0e-7        # 🔬 原始min_lr
+  epochs: 100             # 🔬 原始epochs（更短）
+  batch_size: 192
+  gradient_clip: 1.0
+  early_stopping:
+    patience: 20          # 🔬 原始patience（更短）
+    min_delta: 0.0005     # 🔬 原始min_delta
+
+validation:
+  interval: 1
+  save_best_only: true
+  
+logging:
+  log_interval: 10
+  tensorboard: true
+  save_checkpoint_interval: 10
+  visualization:
+    enabled: true
+    interval: 5
+    num_samples: 4
+    modes: ['magnitude', 'phase']
+
+hardware:
+  device: "cuda"
+  use_amp: true
+  use_ddp: false

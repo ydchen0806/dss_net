@@ -1,0 +1,18 @@
+best_epoch: 117
+best_val_loss: 0.0175456752034801
+best_val_metrics:
+  dynamic_mse: 0.0019766294388790374
+  dynamic_nmse_db: -17.60783933710169
+  dynamic_temporal: 0.0
+  static_mse: 0.0024702961651470374
+  static_nmse_db: -26.14771263687699
+  static_temporal: 0.0
+  total_mse: 0.0035077373160877163
+  total_nmse_db: -25.687000345300746
+experiment_name: Ablation8_NoStaticSmooth
+final_train_loss: 0.06716515551790718
+final_val_loss: 0.021908378021584615
+is_baseline: false
+model_name: UNetDecomposer
+total_epochs: 147
+training_completed: '2025-11-05 00:31:36'

@@ -1,0 +1,6 @@
+experiment_name: Ablation5_NoSeparation
+is_ablation: false
+model_name: UNetDecomposer
+output_dir: results_20251104_092511/no_separation/Ablation5_NoSeparation_UNetDecomposer_20251104_092515
+temporal_enabled: true
+timestamp: '20251104_092515'

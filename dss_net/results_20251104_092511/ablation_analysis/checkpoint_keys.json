@@ -1,0 +1,26 @@
+{
+  "all_keys": [
+    "best_val_loss",
+    "best_val_metrics",
+    "config",
+    "epoch",
+    "is_baseline",
+    "model_state_dict",
+    "optimizer_state_dict",
+    "scheduler_state_dict",
+    "timestamp",
+    "total_epochs",
+    "train_history",
+    "val_loss",
+    "val_metrics",
+    "val_metrics.dynamic_mse",
+    "val_metrics.dynamic_nmse_db",
+    "val_metrics.dynamic_temporal",
+    "val_metrics.static_mse",
+    "val_metrics.static_nmse_db",
+    "val_metrics.static_temporal",
+    "val_metrics.total_mse",
+    "val_metrics.total_nmse_db"
+  ],
+  "num_keys": 21
+}

@@ -1,0 +1,6 @@
+experiment_name: Ablation1_BaselineUNet
+is_ablation: true
+model_name: UNetBaseline
+output_dir: results_20251104_092511/baseunet/Ablation1_BaselineUNet_UNetBaseline_ablation_20251104_092515
+temporal_enabled: false
+timestamp: '20251104_092515'

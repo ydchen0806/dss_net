@@ -1,0 +1,95 @@
+# ====================================================================
+# 消融实验2: 完整改进模型（所有改进都启用）
+# 目的: 最佳性能基准
+# ====================================================================
+experiment:
+  name: "Ablation2_FullImproved"
+  seed: 42
+  output_dir: "./experiments1017"
+  
+data:
+  data_dir: "/LSEM/user/chenyinda/code/signal_xiaoyu"
+  pattern: "2D_channel_for_DSS/Tx_all_2D_*.mat"
+  max_files: null
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  normalize_method: "power"
+  complex_representation: "real_imag"
+  num_workers: 4
+  pin_memory: true
+  augmentation:
+    enabled: true
+    spatial_masking:
+      prob: 0.3
+      mask_ratio: 0.1
+    noise_injection:
+      prob: 0.3
+      snr_range: [20, 35]
+
+model:
+  name: "UNetDecomposer"  # ✅ 完整分解模型
+  in_channels: 2
+  base_channels: 64
+  depth: 4
+  output_heads:
+    static: 2
+    dynamic: 2
+  activation: "leaky_relu"
+  norm_type: "batch"
+  dropout: 0.1
+  use_attention: true  # ✅ 启用attention
+  ablation:
+    enabled: false
+
+loss:
+  weights:
+    static_mse: 1.0
+    dynamic_mse: 2.0      # ✅ 动态分量加权
+    total_mse: 3.0        # ✅ 总重建最重要
+    static_l1: 0.01       # ✅ 减弱正则化
+    dynamic_nuclear: 0.01
+    static_temporal: 0.01
+    dynamic_temporal: 0.01
+  sparsity_lambda: 0.0001  # ✅ 大幅减弱
+  nuclear_lambda: 0.0001
+  separation_weight: 0.05  # ✅ 分离质量约束
+  temporal_correlation:
+    enabled: true          # ✅ 时间约束
+    static_smooth: true
+    dynamic_varying: true
+    dim: -1
+
+training:
+  optimizer: "adamw"
+  learning_rate: 1.0e-3   # ✅ 更高学习率
+  weight_decay: 1.0e-4
+  scheduler:
+    type: "cosine"
+    warmup_epochs: 5
+    min_lr: 1.0e-6
+  epochs: 300              # ✅ 更长训练
+  batch_size: 192
+  gradient_clip: 1.0
+  early_stopping:
+    patience: 30
+    min_delta: 0.0001
+
+validation:
+  interval: 1
+  save_best_only: true
+  
+logging:
+  log_interval: 10
+  tensorboard: true
+  save_checkpoint_interval: 10
+  visualization:
+    enabled: true
+    interval: 5
+    num_samples: 4
+    modes: ['magnitude', 'phase']
+
+hardware:
+  device: "cuda"
+  use_amp: true
+  use_ddp: false

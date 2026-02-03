@@ -1,0 +1,18 @@
+\begin{table}
+\caption{Ablation Study Results}
+\label{tab:ablation}
+\begin{tabular}{lllrr}
+\toprule
+Category & Configuration & Model & Loss & Epoch \\
+\midrule
+baseunet & Ablation1_BaselineUNet & UNetBaseline & 0.004193 & 37 \\
+no_temporal & Ablation3_NoTemporal & UNetDecomposer & 0.016914 & 57 \\
+no_smooth & Ablation8_NoStaticSmooth & UNetDecomposer & 0.017546 & 117 \\
+no_reg & Ablation7_NoRegularization & UNetDecomposer & 0.034955 & 81 \\
+no_attention & Ablation4_NoAttention & UNetDecomposer & 0.037561 & 61 \\
+full & Ablation2_FullImproved & UNetDecomposer & 0.037711 & 78 \\
+no_separation & Ablation5_NoSeparation & UNetDecomposer & 0.039133 & 55 \\
+old_weights & Ablation6_OldWeights & UNetDecomposer & 0.123134 & 31 \\
+\bottomrule
+\end{tabular}
+\end{table}

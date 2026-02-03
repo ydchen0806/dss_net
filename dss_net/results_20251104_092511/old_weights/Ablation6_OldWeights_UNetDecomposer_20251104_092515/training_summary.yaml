@@ -1,0 +1,18 @@
+best_epoch: 31
+best_val_loss: 0.12313405783088119
+best_val_metrics:
+  dynamic_mse: 0.005210707033122027
+  dynamic_nmse_db: -13.364296383327908
+  dynamic_temporal: 0.0
+  static_mse: 0.00880399018664051
+  static_nmse_db: -20.053802490234375
+  static_temporal: 1.4780179482919198
+  total_mse: 0.009140756015700323
+  total_nmse_db: -20.51857814082393
+experiment_name: Ablation6_OldWeights
+final_train_loss: 0.1551568002001313
+final_val_loss: 0.12692751514690895
+is_baseline: false
+model_name: UNetDecomposer
+total_epochs: 51
+training_completed: '2025-11-04 14:24:25'

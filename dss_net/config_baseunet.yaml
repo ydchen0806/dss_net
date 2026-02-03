@@ -1,0 +1,92 @@
+# ====================================================================
+# 消融实验1: Baseline U-Net（不分解，直接重建）
+# 目的: 证明分解的必要性
+# ====================================================================
+experiment:
+  name: "Ablation1_BaselineUNet"
+  seed: 42
+  output_dir: "./experiments1017"
+  
+data:
+  data_dir: "/LSEM/user/chenyinda/code/signal_xiaoyu"
+  pattern: "2D_channel_for_DSS/Tx_all_2D_*.mat"
+  max_files: null
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  normalize_method: "power"
+  complex_representation: "real_imag"
+  num_workers: 4
+  pin_memory: true
+  augmentation:
+    enabled: true
+    spatial_masking:
+      prob: 0.3
+      mask_ratio: 0.1
+    noise_injection:
+      prob: 0.3
+      snr_range: [20, 35]
+
+model:
+  name: "UNetBaseline"  # 🔬 不分解
+  in_channels: 2
+  base_channels: 64
+  depth: 4
+  output_heads:
+    static: 2
+    dynamic: 2
+  activation: "leaky_relu"
+  norm_type: "batch"
+  dropout: 0.1
+  use_attention: false
+  ablation:
+    enabled: true
+
+loss:
+  weights:
+    static_mse: 0.0
+    dynamic_mse: 0.0
+    total_mse: 1.0  # 只有总重建损失
+    static_l1: 0.0
+    dynamic_nuclear: 0.0
+    static_temporal: 0.0
+    dynamic_temporal: 0.0
+  sparsity_lambda: 0.0
+  nuclear_lambda: 0.0
+  separation_weight: 0.0
+  temporal_correlation:
+    enabled: false
+
+training:
+  optimizer: "adamw"
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  scheduler:
+    type: "cosine"
+    warmup_epochs: 5
+    min_lr: 1.0e-6
+  epochs: 300
+  batch_size: 192
+  gradient_clip: 1.0
+  early_stopping:
+    patience: 30
+    min_delta: 0.0001
+
+validation:
+  interval: 1
+  save_best_only: true
+  
+logging:
+  log_interval: 10
+  tensorboard: true
+  save_checkpoint_interval: 10
+  visualization:
+    enabled: true
+    interval: 5
+    num_samples: 4
+    modes: ['magnitude', 'phase']
+
+hardware:
+  device: "cuda"
+  use_amp: true
+  use_ddp: false

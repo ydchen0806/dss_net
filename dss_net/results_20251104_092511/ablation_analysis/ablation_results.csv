@@ -1,0 +1,9 @@
+Category,Experiment,Model,Is_Ablation,Temporal,Epoch,Best_Val_Loss,Use_Attention,Separation_Weight,Dynamic_MSE_Weight,Learning_Rate
+baseunet,Ablation1_BaselineUNet,UNetBaseline,True,False,37,0.004193416943221733,False,0.0,0.0,0.001
+no_temporal,Ablation3_NoTemporal,UNetDecomposer,False,False,57,0.016913746621597697,True,0.05,2.0,0.001
+no_smooth,Ablation8_NoStaticSmooth,UNetDecomposer,False,True,117,0.0175456752034801,True,0.05,2.0,0.001
+no_reg,Ablation7_NoRegularization,UNetDecomposer,False,True,81,0.034954720073276095,True,0.05,2.0,0.001
+no_attention,Ablation4_NoAttention,UNetDecomposer,False,True,61,0.03756050565452487,False,0.05,2.0,0.001
+full,Ablation2_FullImproved,UNetDecomposer,False,True,78,0.03771146290280201,True,0.05,2.0,0.001
+no_separation,Ablation5_NoSeparation,UNetDecomposer,False,True,55,0.03913288556591228,True,0.0,2.0,0.001
+old_weights,Ablation6_OldWeights,UNetDecomposer,False,True,31,0.12313405783088119,True,0.05,1.0,0.0005

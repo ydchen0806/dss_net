@@ -1,0 +1,18 @@
+best_epoch: 37
+best_val_loss: 0.004193416943221733
+best_val_metrics:
+  dynamic_mse: 0.0
+  dynamic_nmse_db: 0.0
+  dynamic_temporal: 0.0
+  static_mse: 0.0
+  static_nmse_db: 0.0
+  static_temporal: 0.0
+  total_mse: 0.004193416943221733
+  total_nmse_db: -24.285629908243816
+experiment_name: Ablation1_BaselineUNet
+final_train_loss: 0.012286215589558783
+final_val_loss: 0.005860181042441615
+is_baseline: true
+model_name: UNetBaseline
+total_epochs: 67
+training_completed: '2025-11-04 11:28:07'
