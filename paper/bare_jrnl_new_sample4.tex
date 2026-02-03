@@ -828,42 +828,39 @@ The 33\% latency increase is acceptable for 3.1 dB performance gain. Both achiev
 \subsection{Fuxian Lake Experiment}
 \par A second sea trial was conducted in Fuxian Lake, Yunnan Province, China---the third deepest freshwater lake in China with a maximum depth of 155~m and exceptionally clear water (Secchi depth $>$12~m). Unlike the semi-enclosed shallow-water environment of Wuyuan Bay, Fuxian Lake provides a distinct propagation environment characterized by deep-water acoustics and minimal surface wave activity. The acoustic modem was deployed at depths of 5~m, 7~m, and 9~m, with a horizontal communication distance of approximately 484~m. The water depth at the experimental site was approximately 50~m.
 
-\par Since ground-truth channel matrices are unavailable in real environments, we employ alternative metrics to evaluate DSS-Net performance. The \textit{denoising gain} quantifies the noise energy removed from the channel:
+\par Since ground-truth channel matrices are unavailable in real environments, we cannot compute the true NMSE. Instead, we report objective metrics that can be measured without ground truth. The \textit{power reduction} quantifies the power difference between input and output:
 \begin{equation}
-	\text{Gain}_{\text{dB}} = 10\log_{10}\frac{P_{\text{input}}}{P_{\text{output}}},
+	\Delta P_{\text{dB}} = 10\log_{10}P_{\text{input}} - 10\log_{10}P_{\text{output}},
 \end{equation}
-where $P_{\text{input}}$ and $P_{\text{output}}$ denote the power of input (noisy) and output (denoised) channels, respectively. The \textit{estimated SNR improvement} is computed as:
-\begin{equation}
-	\Delta\text{SNR}_{\text{est}} = 10\log_{10}\frac{P_{\text{output}}}{P_{\text{input}} - P_{\text{output}}}.
-\end{equation}
+where $P_{\text{input}}$ and $P_{\text{output}}$ denote the power of input (noisy) and output (denoised) channels, respectively. We emphasize that this metric represents power change, not necessarily noise removal---without ground truth, we cannot verify whether the removed power corresponds to noise or signal. Additionally, we report the static and dynamic component power ratios, which reflect the learned channel decomposition characteristics.
 
 \par Table~\ref{tab:fuxian_results} summarizes the Fuxian Lake experimental results. Several physically meaningful observations emerge:
 \begin{itemize}
 	\item \textbf{Depth-dependent dynamic ratio}: As receiver depth increases from 5~m to 9~m, the dynamic component ratio increases from 23.8\% to 29.0\%. This is consistent with acoustic propagation physics: at greater depths, the receiver captures more surface-reflected paths, which are classified as dynamic components due to their time-varying nature.
-	\item \textbf{Consistent denoising performance}: DSS-Net achieves positive denoising gains (1.31--2.39~dB) across all depths, demonstrating robust generalization to unseen real-world channels.
+	\item \textbf{Consistent power reduction}: DSS-Net consistently reduces power by 1.30--2.38~dB across all depths. While we cannot verify the removed component is purely noise without ground truth, the magnitude is consistent with the expected noise levels.
 	\item \textbf{Component separation}: The static-to-dynamic power ratios (2.3--2.9:1) are consistent with the expected dominance of stable propagation paths in the relatively calm lake environment.
 \end{itemize}
 
 \begin{table}[htbp]
 	\centering
-	\caption{\textsc{Fuxian Lake Sea Trial Results.} Performance metrics of DSS-Net evaluated on real channel measurements at different receiver depths. Denoising gain and estimated SNR improvement quantify the noise reduction achieved. Static/Dynamic ratios reflect the learned channel decomposition.}
+	\caption{\textsc{Fuxian Lake Sea Trial Results.} Measured power changes and decomposition ratios of DSS-Net evaluated on real channel measurements at different receiver depths. Note: Without ground truth, true NMSE cannot be computed. Power reduction indicates energy removed by the network; static/dynamic ratios reflect the learned decomposition.}
 	\label{tab:fuxian_results}
 	\renewcommand{\arraystretch}{1.15}
 	\setlength{\tabcolsep}{4pt}
 	\small
-	\begin{tabular}{>{\centering\arraybackslash}p{1.2cm} >{\centering\arraybackslash}p{1.4cm} >{\centering\arraybackslash}p{1.5cm} >{\centering\arraybackslash}p{1.3cm} >{\centering\arraybackslash}p{1.3cm}}
+	\begin{tabular}{>{\centering\arraybackslash}p{1.0cm} >{\centering\arraybackslash}p{1.3cm} >{\centering\arraybackslash}p{1.3cm} >{\centering\arraybackslash}p{1.3cm} >{\centering\arraybackslash}p{1.2cm} >{\centering\arraybackslash}p{1.2cm}}
 		\toprule[1.5pt]
 		\rowcolor{tableheader}
-		\textbf{Depth} & \textbf{Denoising} & \textbf{Est. SNR} & \textbf{Static} & \textbf{Dynamic} \\
+		\textbf{Depth} & \textbf{Input} & \textbf{Output} & \textbf{Power} & \textbf{Static} & \textbf{Dynamic} \\
 		\rowcolor{tableheader}
-		\textbf{(m)} & \textbf{Gain (dB)} & \textbf{Improv. (dB)} & \textbf{Ratio} & \textbf{Ratio} \\
+		\textbf{(m)} & \textbf{(dB)} & \textbf{(dB)} & \textbf{Reduc.} & \textbf{Ratio} & \textbf{Ratio} \\
 		\midrule[1pt]
 		\rowcolor{tablerow1}
-		5 & 2.39 & 4.99 & 69.3\% & 23.8\% \\
+		5 & 2.35 & $-$0.03 & 2.38 & 69.3\% & 23.8\% \\
 		\rowcolor{tablerow2}
-		7 & 1.38 & 7.29 & 65.3\% & 24.6\% \\
+		7 & 3.60 & 2.22 & 1.38 & 65.3\% & 24.6\% \\
 		\rowcolor{tablerow1}
-		9 & 1.31 & 7.46 & 52.8\% & 29.0\% \\
+		9 & 2.72 & 1.42 & 1.30 & 52.8\% & 29.0\% \\
 		\bottomrule[1.5pt]
 	\end{tabular}
 	\renewcommand{\arraystretch}{1.0}
@@ -878,7 +875,7 @@ This paper has proposed DSS-Net, a physics-inspired deep learning framework for 
 
 Simulation experiments on a large-scale ray-tracing dataset demonstrate that DSS-Net achieves $-25.27$~dB NMSE, representing a 4.86~dB improvement over baseline configurations. Ablation studies reveal the critical importance of physics-informed loss design, with hierarchical reconstruction weights, attention mechanisms, temporal constraints, and separation loss collectively contributing to the performance gains.
 
-Two sea trial experiments were conducted to validate DSS-Net in real underwater environments. In the shallow semi-enclosed Wuyuan Bay, DSS-Net achieved 25.0\% BER improvement over conventional methods. In the deep freshwater Fuxian Lake, the learned channel decomposition exhibited physically consistent behavior: the dynamic component ratio increased with receiver depth (23.8\% at 5~m to 29.0\% at 9~m), reflecting the expected increase in surface-reflected paths---a strong indication that DSS-Net captures meaningful acoustic propagation structures rather than arbitrary signal partitions.
+Two sea trial experiments were conducted to validate DSS-Net in real underwater environments. In the shallow semi-enclosed Wuyuan Bay, DSS-Net achieved 25.0\% BER improvement over conventional methods. In the deep freshwater Fuxian Lake, the learned channel decomposition exhibited physically consistent behavior: the dynamic component ratio increased with receiver depth (23.8\% at 5~m to 29.0\% at 9~m), reflecting the expected increase in surface-reflected paths. This depth-dependent decomposition pattern provides strong evidence that DSS-Net captures meaningful acoustic propagation structures rather than arbitrary signal partitions.
 
 The proposed framework demonstrates that systematically incorporating domain knowledge---including channel decomposition structure, component-specific statistical properties, sparsity/low-rank priors, and temporal correlation characteristics---into deep learning can significantly outperform black-box approaches. Future work will extend DSS-Net to time-varying channel tracking and integrate it with adaptive modulation and coding schemes for complete UWA communication systems.
 
