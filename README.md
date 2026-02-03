@@ -1,10 +1,21 @@
-# DSS-Net: Dynamic-Static Separation Networks for UWA Channel Denoising
+<p align="center">
+  <a href="README.md">🇨🇳 中文</a> | <a href="README_EN.md">🇬🇧 English</a>
+</p>
 
-## 项目简介
+# DSS-Net: 动静态分离网络用于水声信道去噪
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/PyTorch-1.10+-red.svg" alt="PyTorch">
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <a href="https://huggingface.co/cyd0806/dss_net_checkpoints"><img src="https://img.shields.io/badge/🤗%20HuggingFace-Checkpoints-yellow.svg" alt="HuggingFace"></a>
+</p>
+
+## 📌 项目简介
 
 本项目实现了 **DSS-Net (Dynamic-Static Separation Networks)**，一种基于物理启发的深度学习框架，用于水声（UWA）信道去噪。该方法通过将信道分解为静态分量和动态分量，结合物理约束的损失函数设计，显著提升了信道估计精度。
 
-## 方法框架
+## 🏗️ 方法框架
 
 ![DSS-Net Architecture](dss_net_architecture.png)
 
@@ -12,7 +23,7 @@ DSS-Net采用**双解码器U-Net架构**，核心思想是将含噪信道分解�
 - **静态分量 (Static Component)**：来自稳定传播路径（直接路径、海底反射），具有稀疏性和时间稳定性
 - **动态分量 (Dynamic Component)**：来自时变海面反射，具有低秩特性和快速时变性
 
-### 核心创新
+### 💡 核心创新
 
 1. **动静态分解架构**：共享编码器 + 双对称解码器，显式分离两种分量
 2. **物理启发损失函数**：
@@ -24,7 +35,7 @@ DSS-Net采用**双解码器U-Net架构**，核心思想是将含噪信道分解�
 
 ---
 
-## 性能
+## 📊 性能
 
 ### 仿真数据（Ray-Tracing）
 
@@ -42,13 +53,13 @@ DSS-Net采用**双解码器U-Net架构**，核心思想是将含噪信道分解�
 | 7m | 3.60 dB | 2.22 dB | 1.38 dB | 65.3% | 24.6% |
 | 9m | 2.72 dB | 1.42 dB | 1.30 dB | 52.8% | 29.0% |
 
-> **⚠️ 重要说明**: 海试数据无Ground Truth，**无法计算真实的NMSE或SNR改善**。上表仅报告客观的功率变化（功率减少 = 输入功率 - 输出功率），静态/动态比例反映模型学习到的信道分解特性。
+> **⚠️ 重要说明**: 海试数据无Ground Truth，**无法计算真实的NMSE或SNR改善**。上表仅报告客观的功率变化，静态/动态比例反映模型学习到的信道分解特性。
 
-**物理规律验证**：深度增加 → 动态分量（海面反射）占比增大，符合声学传播原理。
+**🔬 物理规律验证**：深度增加 → 动态分量（海面反射）占比增大，符合声学传播原理。
 
 ---
 
-## 项目结构
+## 📁 项目结构
 
 ```
 signal_dy_static/
@@ -58,7 +69,6 @@ signal_dy_static/
 │   ├── dataset.py                 # 数据加载器
 │   ├── train.py                   # 训练脚本
 │   ├── eval.py                    # 评估脚本
-│   ├── eval_real_data.py          # 真实数据评估脚本
 │   ├── process_sea_trial.py       # 海试数据处理脚本
 │   ├── config.yaml                # 主配置文件
 │   └── results_20251104_092511/   # 实验结果目录
@@ -72,8 +82,6 @@ signal_dy_static/
 │   ├── 484_7m_01_LS.mat           # 7米深度原始数据
 │   ├── 484_9m_01_LS.mat           # 9米深度原始数据
 │   └── compare/                   # 处理后的对比结果
-│       ├── *_processed.mat        # 去噪前后mat文件
-│       └── compare_*.png          # 可视化对比图
 │
 ├── data_utils/                    # 数据预处理工具
 ├── dss_net_architecture.png       # 方法框架图
@@ -82,7 +90,7 @@ signal_dy_static/
 
 ---
 
-## 快速开始
+## 🚀 快速开始
 
 ### 环境要求
 
@@ -90,11 +98,9 @@ signal_dy_static/
 pip install torch numpy scipy matplotlib pyyaml tqdm pandas
 ```
 
-### 预训练模型下载
+### 📦 预训练模型下载
 
-模型文件托管在 Hugging Face：
-
-🤗 **[cyd0806/dss_net_checkpoints](https://huggingface.co/cyd0806/dss_net_checkpoints)**
+模型文件托管在 Hugging Face：🤗 **[cyd0806/dss_net_checkpoints](https://huggingface.co/cyd0806/dss_net_checkpoints)**
 
 | 模型 | 文件 | 大小 | NMSE |
 |------|------|------|------|
@@ -112,7 +118,7 @@ huggingface-cli download cyd0806/dss_net_checkpoints dss_net_full_best.pth --loc
 wget https://huggingface.co/cyd0806/dss_net_checkpoints/resolve/main/dss_net_full_best.pth
 ```
 
-### 训练模型
+### 🏋️ 训练模型
 
 ```bash
 cd dss_net
@@ -124,12 +130,10 @@ python train.py --config config.yaml
 torchrun --nproc_per_node=4 train.py --config config.yaml
 ```
 
-### 处理海试数据
+### 🔍 处理海试数据
 
 ```bash
 cd dss_net
-
-# 处理真实数据并生成对比结果
 python process_sea_trial.py
 ```
 
@@ -139,7 +143,7 @@ python process_sea_trial.py
 
 ---
 
-## 模型说明
+## 📐 模型说明
 
 ### 输入输出
 
@@ -170,7 +174,7 @@ loss:
 
 ---
 
-## 论文引用
+## 📖 论文引用
 
 ```bibtex
 @article{yang2025dssnet,
@@ -183,13 +187,13 @@ loss:
 
 ---
 
-## 联系方式
+## 📧 联系方式
 
-- 杨逍宇: xiaoyuyang@stu.xmu.edu.cn (信道建模、海试验证)
-- 陈胤达: yindachen@mail.ustc.edu.cn (算法设计、代码实现)
+- **杨逍宇**: xiaoyuyang@stu.xmu.edu.cn (信道建模、海试验证)
+- **陈胤达**: yindachen@mail.ustc.edu.cn (算法设计、代码实现)
 
 ---
 
-## License
+## 📄 License
 
 MIT License
