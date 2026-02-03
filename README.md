@@ -165,8 +165,8 @@ loss:
 
 ## 联系方式
 
-- 杨晓宇: xiaoyuyang@stu.xmu.edu.cn (信道建模、海试验证)
-- 陈寅达: yindachen@mail.ustc.edu.cn (算法设计、代码实现)
+- 杨逍宇: xiaoyuyang@stu.xmu.edu.cn (信道建模、海试验证)
+- 陈胤达: yindachen@mail.ustc.edu.cn (算法设计、代码实现)
 
 ---
 
