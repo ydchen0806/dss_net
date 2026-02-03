@@ -11,12 +11,19 @@
 \usepackage{graphicx}
 \usepackage{bm}
 \usepackage{color}
-%\usepackage{cite}
+\usepackage{cite}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{pifont}
 \usepackage{colortbl}
 \usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=blue,
+	urlcolor=blue,
+	citecolor=blue,
+}
 % 定义表格颜色
 \definecolor{tableheader}{RGB}{230, 242, 255}  % 浅蓝色表头
 \definecolor{tablerow1}{RGB}{248, 248, 248}    % 浅灰色行
@@ -35,255 +42,214 @@
 \author{Xiaoyu~Yang$^{\dagger}$,~\IEEEmembership{Graduate~Student~Member,~IEEE,}
         Yinda~Chen$^{\dagger}$,~\IEEEmembership{Graduate~Student~Member,~IEEE,}
         Feng~Tong,~\IEEEmembership{Member,~IEEE,}
+        Fuming~Zhang,~\IEEEmembership{Fellow,~IEEE,}
         and~Yuehai~Zhou,~\IEEEmembership{Senior~Member,~IEEE}
 \thanks{$^{\dagger}$These authors contributed equally to this work.}
-\thanks{This work was supported in part by the National Natural Science Foundation of China under Grant 6xxxxxx. (Corresponding author: Feng Tong.)}
-\thanks{X. Yang is with the College of Ocean and Earth Sciences, Xiamen University, Xiamen 361005, China. In addition, X.Yang is with the China Institute of Communications. X. Yang contributed to conceptualization, dataset generation, experimental validation, and physical interpretation of the results. (e-mail: xiaoyuyang@stu.xmu.edu.cn).}
+\thanks{This work was supported in part by the National Natural Science Foundation of China (No. 6241101121) and in part by the Fundamental and Interdisciplinary Disciplines Breakthrough Plan of the Ministry of Education of China under Grant (No. JYB2025XDXM209). (Corresponding author: Feng Tong.)}
+\thanks{X. Yang, Y. Zhou, and F. Tong are with the College of Ocean and Earth Sciences, Xiamen University, Xiamen 361001, China, also with the National and Local Joint Engineering Research Center for Navigation and Location Service Technology (Xiamen University), Xiamen 361001,	China. In addition to the above two departments, X. Yang is with the China Institute of Communications. X. Yang contributed to conceptualization, dataset generation, experimental validation, and physical interpretation of the results. (e-mail: xiaoyuyang@stu.xmu.edu.cn; ftong@xmu.edu.cn; zhouyuehai@xmu.edu.cn).}
 \thanks{Y. Chen is with the School of Information Science and Technology, University of Science and Technology of China, Hefei 230027, China. Y. Chen contributed to algorithm design, theoretical analysis, and code implementation (e-mail: cyd0806@mail.ustc.edu.cn).}
 \thanks{Color versions of one or more of the figures in this paper are available online at http://ieeeexplore.ieee.org.}
 \thanks{Digital Object Identifier xx.xxxx/TWC.2025.xxxxxxx}}
 
-\markboth{IEEE Transactions on Wireless Communications,~Vol.~xx, No.~xx, xxx~2025}%
-{Yang, Chen \MakeLowercase{\textit{et al.}}: DSS-Net: Dynamic--Static Separation Networks for Wireless Channel Denoising}
+\markboth{IEEE Transactions on Wireless Communications,~Vol.~xx, No.~xx, xxx~2026}%
+{Yang, Chen \MakeLowercase{\textit{et al.}}: DSS-Net: Dynamic--Static Separation Networks for Physics-Inspired UWA Channel Denoising}
 
 % \IEEEpubid{0000--0000/00\$00.00~\copyright~2025 IEEE}
 
 \maketitle
 
 \begin{abstract}
-Accurate channel state information (CSI) is essential for underwater acoustic (UWA) OFDM systems. Existing deep learning-based channel estimation methods treat neural networks as black boxes without exploiting the physical characteristics of UWA channels. This paper proposes DSS-Net, a physics-inspired deep learning framework that decomposes UWA channels into static and dynamic components based on acoustic propagation physics. We design a dual-decoder U-Net architecture with squeeze-and-excitation attention and develop a physics-informed loss function incorporating sparsity constraints for static components, nuclear norm regularization for dynamic components, and temporal correlation priors. Theoretical analysis establishes connections to sparse recovery and low-rank matrix completion. Experiments on a ray-tracing dataset (23,742 samples) demonstrate that DSS-Net achieves $-25.27$~dB NMSE with 4.86~dB improvement over baseline. Ablation studies quantify each component's contribution, and sea trial experiments validate the effectiveness in real underwater environments.
+Accurate channel state information (CSI) is fundamental to orthogonal frequency division multiplexing (OFDM)-based underwater acoustic (UWA) communication systems. Existing deep learning approaches for channel denoising predominantly operate as ``black boxes,'' treating channel matrices as generic images while ignoring the distinct physical propagation characteristics of the underwater medium. This paper proposes DSS-Net, a physics-inspired deep learning framework that explicitly exploits the structural decomposition of UWA channels into static and dynamic components. The static component, originating from stable propagation paths (direct arrivals and bottom reflections), exhibits sparsity and temporal consistency. The dynamic component, induced by time-varying sea surface reflections, displays low-rank structure and rapid fluctuations. We design a dual-decoder U-Net architecture with shared encoder and squeeze-and-excitation attention, complemented by a physics-informed loss function incorporating sparsity constraints, nuclear norm regularization, temporal correlation priors, and separation quality metrics. Simulation experiments on a ray-tracing dataset (23,742 samples) demonstrate that DSS-Net achieves $-25.27$~dB normalized mean squared error (NMSE), yielding a 4.86~dB improvement over baseline methods. Sea trial experiments conducted in Wuyuan Bay (Xiamen) and Fuxian Lake (Yunnan) validate the effectiveness in diverse real underwater environments, with the learned decomposition exhibiting physically consistent depth-dependent characteristics. Code is available at \url{https://github.com/ydchen0806/dss_net}.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Underwater acoustic communication, dynamic-static decomposition channel estimation, physics-informed neural networks, deep learning, sparse recovery, low-rank approximation.
+Underwater acoustic communication, dynamic-static decomposition, physics-inspired deep learning, channel denoising, sparse recovery, low-rank approximation.
 \end{IEEEkeywords}
 
 % =========================================================================
 \section{Introduction}
-\IEEEPARstart{U}{nderwater} acoustic (UWA) communication serves as the primary technology for medium to long-range underwater information transmission, as electromagnetic and optical waves suffer severe attenuation in underwater environments~\cite{diamant2017relationship}. UWA communication enables critical applications including underwater information transmission~\cite{jiang2023long}, underwater networks~\cite{diamant2018fair}, and autonomous underwater vehicles~\cite{zhuo2023value}. However, UWA channels present significant challenges due to multipath propagation, time-varying characteristics, and limited bandwidth~\cite{yang2023research}.
+\IEEEPARstart{U}{nderwater} acoustic (UWA) communication serves as the primary technology for medium-to-long-range underwater information transmission, as electromagnetic and optical waves suffer severe attenuation in underwater environments~\cite{diamant2017relationship}. UWA communication enables critical applications including underwater data transmission~\cite{jiang2023long}, underwater networks~\cite{diamant2018fair}, and autonomous underwater vehicles~\cite{zhuo2023value}. However, the underwater acoustic channel is widely recognized as one of the most challenging communication media~\cite{yang2023research}, characterized by severe attenuation, limited bandwidth, and, most critically, severe multipath propagation coupled with time variations.
 
-\par Orthogonal frequency division multiplexing (OFDM) has been widely adopted in UWA systems due to its robustness against frequency-selective fading. However, OFDM performance critically depends on accurate channel state information (CSI) for equalization~\cite{qiao2017mimo}. Conventional pilot-assisted channel estimation methods include least-squares (LS)~\cite{yang2024minimum} and minimum-mean-square-error (MMSE)~\cite{zhao2020adaptive}. Exploiting the sparsity of UWA channels, compressed sensing-based methods have achieved significant improvements~\cite{zhou2017distributed, wang2020new, feng2021message, chen2024vector, yang2025impulsive}. Nevertheless, channel estimation accuracy degrades substantially under low signal-to-noise ratio (SNR) conditions due to noise interference.
-\par Traditional channel denoising methods treat the noisy observation as a single entity using generic signal processing techniques, including Wiener filtering~\cite{suresh2017two}, wavelet shrinkage~\cite{Donoho1995Wavelet}, and total-variation regularization~\cite{iordache2012total}. Recent deep learning approaches have achieved significant improvements in terrestrial wireless communications~\cite{yin2023deep, lee2023practical, soltani2019deep, liu2021deep}. For UWA channels, learning-based denoising methods have emerged~\cite{cho2020channel, jing2024learned, zhang2023model, wang2024robust}, typically exploiting channel sparsity. However, existing methods treat neural networks as ``black boxes'' without incorporating the physical characteristics of UWA channels.
+\par Orthogonal frequency division multiplexing (OFDM) has been widely adopted in UWA systems due to its robustness against multipath fading, and is regarded as one of the most promising technologies for UWA communication~\cite{qiao2017mimo}. Recently, DL has been introduced into physical layer designs, revolutionizing various communication modules. Extensive research has been conducted, including modulation recognition~\cite{wang2023edge}, adaptive modulation~\cite{bobrov2021massive}, intelligent reflecting surface~\cite{zheng2023hybrid}, channel coding~\cite{matsumine2024recent}, channel state information feedback~\cite{sohrabi2021deep}, channel estimation~\cite{ye2017power}, and channel equalization and signal detection~\cite{he2018deep}, etc. In~\cite{ye2017power}, the communication system is considered as a black-box and an end-to-end DL architecture is used for signal transmission/reception. Encoding, decoding, channel estimation and all other functionalities of a communication link are embedded in the DL-block, implicitly. Similarly, a DL-based receiver that employs transfer learning is proposed in~\cite{shang2024design}. Simulation results confirm that our proposed receiver achieves superior bit error rate performance. However, the end-to-end receiver relies heavily on the training dataset and lacks generalization, limiting its utilization in practical UWA applications. To improve the interpretability of DL, deep unfolding techniques~\cite{feng2023model, zhao2022model, zheng2024dual} were proposed to attempt to unfold the black-box characteristic of DL for communication systems. These methods unfold iterative algorithms, such as approximate message passing (AMP), into layered network structures with learnable parameters. Notably, Feng \textit{et al.} proposed a Learned AMP (LAMP) network to address the "uncertain sparsity" of UWA channels, adaptively learning shrinkage functions to recover sparse taps without rigid priors~\cite{feng2023model}. Although these model-driven approaches successfully exploit the general sparsity of the channel, however, no further integration was made with the characteristics of underwater sound propagation.
 
-\par In this paper, we propose Dynamic-Static Separation Networks (DSS-Net), a physics-inspired deep learning framework for UWA channel denoising. The key insight is that UWA channels can be decomposed into static components (from stable propagation paths) and dynamic components (from time-varying sea surface reflections), which exhibit fundamentally different temporal characteristics. DSS-Net explicitly estimates these components through dual symmetric decoders with a shared encoder and attention bottleneck. We design a physics-informed loss function incorporating sparsity constraints for static components, low-rank regularization for dynamic components, and temporal correlation priors. We establish theoretical connections to sparse recovery and low-rank matrix completion under restricted isometry property (RIP) conditions.
+\par Since, the performance of OFDM systems is critically dependent on the availability of accurate channel state information (CSI). In practice, obtaining precise CSI is hindered by low signal-to-noise ratios (SNR), residual carrier frequency offset, and the inherent complexity of channel structures. Traditional signal processing techniques, such as Least Squares (LS) or Compressed Sensing (CS) algorithms, often struggle to balance estimation accuracy with computational complexity, particularly when the underlying channel sparsity is uncertain or time-varying, resulting in noisy channel matrices. Furthermore, conventional denoising methods, such as Wiener filtering~\cite{suresh2017two} or wavelet shrinkage~\cite{Donoho1995Wavelet}, and total-variation regularization~\cite{iordache2012total}, treat the noisy channel matrix as a homogeneous entity, failing to leverage the specific physical structures of acoustic propagation. Compared to conventional denoising methods, researches focus on the development of image processing, and skillfully treat channel time-frequency grids as generic images~\cite{soltani2019deep, liu2021deep, yin2023deep, lee2023practical}. Furthermore, considering the sparsity characteristic of UWA channels, sparsity-based channel denoising methods have emerged~\cite{cho2020channel, jing2024learned, zhang2023model, wang2024robust, gao2021deep, guo2024underwater}. For example, in~\cite{zhang2023model}, proposes a novel approach for OTFS channel estimation in underwater acoustic communications, utilizing a model-driven deep learning technique. Our method incorporates a residual neural network into the OTFS channel estimation process. Specifically, the orthogonal matching pursuit algorithm and denoising convolutional neural network (DnCNN) collaborate to perform channel estimation. The cascaded DnCNN denoises the preliminary channel estimation results generated by the orthogonal matching pursuit algorithm for more accurate OTFS channel estimation results. Although current channel denoising methods achieve satisfactory performance, these pure data-driven methods lack interpretability, ignoring the distinct non-Gaussian statistics in underwater environments, and often suffer from poor generalization when the test environment deviates from the training distribution. Furthermore, existing methods typically treat neural networks as ``black boxes'', thereby failing to exploit the inherent physical characteristics.
+\par Recently, the paradigm of Physics-Informed Neural Networks (PINNs) has gained traction in scientific computing~\cite{huang2024broadband, wang2024physics, shan2023physics}, demonstrating that embedding physical laws (e.g., partial differential equations) into network training significantly enhances interpretability and robustness. Despite its success in fluid dynamics and electromagnetics, the application of physics-informed strategies in UWA channel estimation remains in its infancy.
+\par In this paper, we propose the \textbf{Dynamic-Static Separation Network (DSS-Net)}, a physics-inspired deep learning framework designed to explicitly exploit the structural decomposition of UWA channels. Unlike conventional methods that denoise the channel as a whole, DSS-Net employs a decoupled dual-branch architecture. A shared encoder extracts common features, while two symmetric decoders separately reconstruct the stable geometric paths and the fluctuating surface reflections. A novel physics-informed loss function is formulated to enforce sparsity constraints on the static branch and low-rank regularization on the dynamic branch, effectively imposing strong physical inductive biases.
 \par The main contributions are summarized as follows:
 \begin{itemize}
-	\item We propose DSS-Net, a physics-inspired deep learning framework that explicitly leverages dynamic-static decomposition for UWA channel denoising, enhancing both interpretability and performance compared to black-box approaches.
-	\item We design a physics-informed loss function incorporating sparsity constraints, low-rank regularization, temporal correlation priors, and separation quality metrics, with theoretical connections to sparse recovery and matrix completion.
-	\item We generate a large-scale ray-tracing dataset (23,742 samples) with ground-truth decomposition labels for supervised training and evaluation.
-	\item Comprehensive experiments demonstrate that DSS-Net achieves $-25.27$~dB NMSE with 4.86~dB improvement over baseline, validated by both simulation and sea trial experiments.
+	\item We propose DSS-Net, a physics-inspired deep learning framework that explicitly leverages dynamic-static decomposition for UWA channel denoising. Unlike existing black-box approaches, DSS-Net incorporates physical characteristics of acoustic propagation into both network architecture (dual-decoder with shared encoder) and loss function design.
+	\item We design a physics-informed loss function incorporating sparsity constraints ($\ell_1$ regularization for angular-domain sparse static paths), low-rank regularization (nuclear norm for limited-rank dynamic scattering), temporal correlation priors, and separation quality metrics, with theoretical connections to sparse recovery and matrix completion.
+	\item We generate a large-scale ray-tracing dataset (23,742 samples) with ground-truth decomposition labels using the Bellhop acoustic model. Comprehensive simulation experiments demonstrate that DSS-Net achieves $-25.27$~dB NMSE with 4.86~dB improvement over baseline.
+	\item We validate DSS-Net through two sea trial experiments in distinct underwater environments: a shallow semi-enclosed bay (Wuyuan Bay, Xiamen) and a deep freshwater lake (Fuxian Lake, Yunnan). The learned decomposition exhibits physically consistent depth-dependent characteristics, demonstrating robust generalization to real-world channels.
 \end{itemize}
 
-\par The remainder of this article is organized as follows. Section~II reviews the OFDM system model. Section~III presents the channel decomposition model and problem formulation. Section~IV establishes theoretical foundations. Section~V describes the DSS-Net architecture. Section~VI presents the physics-informed loss function. Section~VII presents simulation experiments. Section~VIII describes sea trial experiments. Section~IX concludes this article.
+\par The remainder of this article is organized as follows. Section~II reviews the OFDM system model. Section~III presents the channel decomposition model and problem formulation. Section~IV establishes theoretical foundations for sparse recovery and low-rank matrix completion. Section~V describes the DSS-Net architecture. Section~VI presents the physics-informed loss function design. Section~VII presents simulation experiments including ablation studies. Section~VIII describes sea trial experiments in two distinct underwater environments. Section~IX concludes this article with future directions.
 
-\par \textbf{\emph{Notation}}: Notations ${\left( \cdot \right)^T}$ and ${\left( \cdot \right)^H}$ denote transpose and Hermitian transpose respectively. Notations ${\left\|  \cdot  \right\|^2}$, ${\left\|  \cdot  \right\|_0}$, ${\left\|  \cdot  \right\|_2}$, and ${\left\|  \cdot  \right\|_F}$ denote square value, $l_0$ norm, $l_2$ norm, and $F$ norm respectively. Notation upper case $\mathbf{X}$ denotes a matrix, and lower case $\mathbf{x}$ denotes a vector. Notations $\mathbf{F}_K$ and $\mathbf{F}_K^H$ denote the $K \times  K$ unitary discrete Fourier transform (DFT) matrix and inverse DFT matrix respectively. Notation $\rm{diag}$($\mathbf{x}$) denotes a diagonal matrix with $\mathbf{x}$ on its diagonal. Notation $\mathbf{x}(k)$ denotes the $k$-th element in $\mathbf{x}$. Similarly, notation $\mathbf{X}(k,l)$ denotes the element in $\mathbf{X}$ determined by the $k$-th row and $l$-th column. Notation ${\mathbf{X}{\left( {\mathbf{\Phi} ,:} \right)}}$ denotes the submatrix of ${\mathbf{X}}$, and its rows are determined by the vector $\mathbf{\Phi}$. Similarly, notation ${\mathbf{X}{\left( {:,p:q} \right)}}$ denotes the submatrix of ${\mathbf{X}}$ from column $p$ to $q$. Notation $j$ denotes the imaginary number and it can be defined as $\sqrt { - 1}$.
+\par \textbf{\emph{Notation}}: Notations ${\left( \cdot \right)^T}$ and ${\left( \cdot \right)^H}$ denote transpose and Hermitian transpose respectively. Notations ${\left\|  \cdot  \right\|^2}$, ${\left\|  \cdot  \right\|_0}$, ${\left\|  \cdot  \right\|_1}$, ${\left\|  \cdot  \right\|_2}$, and ${\left\|  \cdot  \right\|_F}$ denote square value, $l_0$ norm, $l_1$ norm, $l_2$ norm, and $F$ norm respectively. Upper-case letters denote matrices, and lower-case letters denote vectors. Notations $\mathbf{F}$ and $\mathbf{F}^H$ denote the unitary discrete Fourier transform (DFT) matrix and inverse DFT matrix respectively. Notation ${\mathop{\rm diag}\nolimits} ( \mathbf{x} )$ denotes a diagonal matrix with $\mathbf{x}$ on its diagonal. Notation $\mathbf{x}(k)$ denotes the $k$-th element in $\mathbf{x}$. Notation $j$ denotes the imaginary unit and it can be defined as $\sqrt { - 1}$.
 
-%\par Mathematically, the channel matrix $\bm{H}\in\mathbb{C}^{M\times N}$ at time $t$ can be decomposed as
-%\begin{equation}
-%\bm{H}(t)=\bm{H}_{\mathrm{s}}(t)+\bm{H}_{\mathrm{d}}(t),
-%\label{eq:decomposition}
-%\end{equation}
-%where $\bm{H}_{\mathrm{s}}(t)$ captures reflections from stationary objects (buildings, terrain) and $\bm{H}_{\mathrm{d}}(t)$ represents scattering from mobile objects (vehicles, pedestrians). These components exhibit fundamentally different characteristics:
-%\begin{itemize}
-%\item \textbf{Static Component}: Sparse in angular/delay domains due to limited dominant scatterers; temporally smooth with $\|\bm{H}_{\mathrm{s}}(t+\Delta t)-\bm{H}_{\mathrm{s}}(t)\|_F \ll \epsilon_s$ for $\Delta t < T_{\text{static}}$.
-%\item \textbf{Dynamic Component}: Low-rank in spatial domain due to limited angular spread; rapidly time-varying with Doppler shifts.
-%\end{itemize}
-%
-%Recent deep learning approaches \cite{CResNet_TWC21,ChannelNet_TCOM20} achieve 2--3 dB gains by learning hierarchical representations, yet they still regress a \emph{single} channel matrix without exploiting the decomposition \eqref{eq:decomposition}. Diffusion models \cite{Song2021Score} improve robustness but require iterative sampling. \textbf{To our knowledge, no prior work has explicitly leveraged dynamic--static separation for wireless channel denoising.}
-
-%\subsection{Contributions}
-%
-%1) Novel Architecture: We propose DSS-Net, the first deep learning framework that \emph{jointly decomposes and denoises} by explicitly estimating $\hat{\bm{H}}_{\mathrm{s}}$ and $\hat{\bm{H}}_{\mathrm{d}}$ through dual symmetric decoders with shared encoder and attention bottleneck.
-%
-%2) Physics-Informed Loss: We design a multi-term objective embedding: (i) weighted reconstruction emphasizing total fidelity; (ii) $\ell_1$ sparsity for static; (iii) nuclear norm for low-rank dynamic; (iv) temporal correlation; (v) separation quality metric.
-%
-%3) Theoretical Analysis: We establish connections to sparse recovery and low-rank matrix completion, providing performance guarantees under restricted isometry property (RIP) conditions.
-%
-%4) Large-Scale Dataset: We generate 23,742 ray-traced channel snapshots (100×150 dimensions) with ground-truth labels via QuaDRiGa simulator.
-%
-%5) Extensive Validation: DSS-Net achieves 3.1 dB NMSE improvement with 42\% parameter reduction. Ablation studies quantify each component: decomposition (+1.54 dB), attention (+1.37 dB), separation loss (+0.63 dB), optimized weights (+4.59 dB).
-% =========================================================================
-\section{Preliminaries}
-\par In this section, a brief review of the classic UWA OFDM model is provided. Fig.~\ref{fig:flowchart} provides a flowchart of OFDM systems.
+%====================================================================
+\section{Preliminaries}\label{sec:system_model}
+\par In this section, a brief review of the classic UWA OFDM model is provided. Fig.~\ref{fig:flowchart} illustrates a flowchart of OFDM systems with channel denoising method.
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=8.5cm]{figs/flowchart.eps}
+	\includegraphics[width=\linewidth]{figs/flowchart.eps}
 	\caption{Flowchart of OFDM.}
 	\label{fig:flowchart}
 \end{figure}
-\par Assuming that each OFDM symbol contains $K$ subcarriers, with the $k$-th subcarrier positioned at the frequency ${f_k} = k{f_\Delta }$, where $k = 1, 2, \cdots ,K$ and ${f_\Delta }$ denotes the frequency interval. The $K$ subcarriers are categorized into $K_d$ data subcarriers and $K_p$ pilot subcarriers, with their respective index sets denoted as $\Phi_d$ and $\Phi_p$ respectively. Hence, by performing a $K$-point IDFT, each OFDM baseband signal in the time domain can be expressed as
+\par Assuming that each OFDM symbol contains $K$ subcarriers, with the $k$-th subcarrier positioned at the frequency ${f_k} = k{f_\Delta }$, where $k = 0, 1, \cdots ,K-1$ and ${f_\Delta }$ denotes the frequency interval. The $K$ subcarriers are categorized into $K_a$ data subcarriers and $K_p$ pilot subcarriers, with their respective index sets denoted as $\mathcal{K}_a$ and $\mathcal{K}_p$ respectively. Hence, by performing a $K$-point IDFT, each OFDM baseband signal in the time domain ${\bf{x}}_t \in \mathbb{C}^{K \times 1}$ can be expressed as
 \begin{eqnarray}\label{eq:x(n)}
-	{\bf{x}}_f\left( i \right) = \frac{1}{{\sqrt K }}\left( {\sum\limits_{k \in {{\Phi}_d}} {{\bf{d}}\left( k \right){e^{j2\pi k{f_\Delta }i}}}  + \sum\limits_{k \in {{\Phi}_p}} {{\bf{d}}\left( k \right){e^{j2\pi k{f_\Delta }i}}} } \right),
+	{\bf{x}}_t = {\bf{F}}_K^H{\bf{x}}_f\;.
 \end{eqnarray}
-where ${i} = 1, 2, \cdots, K$. Notation $\mathbf{d}$ denotes each mapped OFDM signal in the frequency domain, defined as ${\bf{d}} = {\left( {{d_1},{d_2}, \cdots, {d_{K}}} \right)^T}$. For the sake of convenience in derivation, subsequent derivations will utilize matrix notation ${\bf{x}}_f = {\bf{F}}_K^H{\bf{d}}$.
-\par In the receiver, as detailed in~\cite{li2006ofdm}, the Doppler effect can be divided into wide-band Doppler and narrow-band Doppler. The wide-band Doppler is compensated using a resampling technique, leaving the narrow-band Doppler, which is modeled as carrier frequency offset (CFO). Accordingly, each received baseband symbol in the time domain can be expressed as ${\bf{r}} = {\bf{\Theta }}\left( {{\bf{F}}_K^H{\bf{X}}_f{{\bf{F}}_{K,\left[ {:,1:N} \right]}}{\bf{h}}} \right) + {\bf{w}}$, where ${{\bf{\Theta }}}$, ${{{\bf{X}}}}_f$, $\mathbf{h}$, and $\mathbf{w}$ denote the CFO matrix, transmitted symbol matrix, CIR matrix, and ambient noise matrix, respectively. Assuming ${{\bf{\bar \Theta }}}$ denotes the CFO compensation matrix with a tentative CFO value $\bar \varepsilon $, and the compensated signals can be expressed as
-\begin{eqnarray}\label{eq:bar_r}
-	{\bf{\bar r}} = {{\bf{\bar \Theta }}^H}{\bf{r}} = {{\bf{\bar \Theta }}^H}{\bf{\Theta F}}_K^H{\bf{X}}_f{{\bf{F}}_{\left[ {:,1:N} \right]}}{\bf{h}} + {{\bf{\bar \Theta }}^H}{\bf{w}}\;.
+Notation $\mathbf{x}_f \in \mathbb{C}^{K \times 1}$ denotes each mapped OFDM signal in the frequency domain, defined as $\mathbf{x}_f \triangleq {\left( {\mathbf{x}_f\left[ 0 \right],\mathbf{x}_f\left[ 1 \right], \cdots ,\mathbf{x}_f\left[ K-1 \right]} \right)^T}$. Subsequently, cyclic prefix (CP) insertion, up-sampling, pulse shaping, and carrier modulation are performed sequentially to generate the passband OFDM signal.
+\par At the receiver, the wideband Doppler effect is compensated
+by resampling, as noted in~\cite{li2008ofdm}, while the residual narrowband Doppler shift is modeled as CFO. The passband processing includes resampling, down-conversion, low-pass filtering, and CP removal. Assuming the CIR is time-invariant within one OFDM block and CP length $L_{cp}$ exceeds the maximum channel delay spread $L_h \le L_{cp}$, after down-conversion, low-pass filtering, and CP removal, the received baseband signal can be expressed as
+\begin{equation}
+	\label{eq:y_t}
+	{{\bf{y}}_t} = {{\bf{\Gamma }} }_{\varepsilon}{{\bf{F}}^H}{{\bf{\Lambda }}}{{\bf{F}}_{L_h}}{\bf{h}} + {{\bf{w}}_t}\;,
+\end{equation}
+where ${{\bf{y}}_t} \triangleq {({y_t}\left[ 0 \right],{y_t}\left[ 1 \right], \cdots ,{y_t}\left[ {K - 1} \right])^T}$ represents the received time-domain vector. The matrix $\mathbf{\Gamma}_{\varepsilon} = \text{diag}(1, e^{j2\pi \varepsilon /K}, \dots, e^{j2\pi \varepsilon (K - 1)/K})$ denotes the CFO diagonal matrix characterized by the normalized frequency offset $\varepsilon$. Notation ${\bf{\Lambda }} = \text{diag}(\mathbf{x}_f)$ is the diagonal transmission matrix, and $\mathbf{F}_{L_h}$ denotes the submatrix formed by the first $L_h$ columns of the unitary DFT matrix $\mathbf{F}$. The vector ${\bf{h}} = {[ h[ 0 ], \cdots ,h[ {L_h - 1} ]]^T}$ represents the CIR, and $\mathbf{w}_t \sim \mathcal{CN}(\mathbf{0}, \sigma^2 \mathbf{I})$ denotes the additive Gaussian noise vector.
+\par Assuming ${\bf{\Gamma }}_{\hat \varepsilon }^H \in \mathbb{C}^{K \times K}$ denotes the CFO compensation matrix with a estimated CFO value $ \hat \varepsilon $ and $\mathbf{P}_p$ denotes the pilot selection matrix, the compensated pilot signal in the frequency domain can be expressed as
+\begin{eqnarray}\label{eq:y_p}
+	{{\bf{y}}_p} &=& {{\bf{P}}_p}{{\bf{F}}}{\bf{\Gamma }}_\varepsilon ^H{\bf{y}}_t \nonumber \\
+	&=& {{\bf{P}}_p}{{\bf{F}}}{\bf{\Gamma }}_{\hat \varepsilon} ^H{{\bf{\Gamma }}_{{\varepsilon }}}{\bf{F}}^H{{\bf{\Lambda }}}{{\bf{F}}_{{L_h}}}{\bf{h}} + {\bf{\Gamma }}_\varepsilon ^H{\bf{w}}\;,\\
+	&=& {{\bf{P}}_p}{{\bf{F}}}{{\bf{\Gamma }}_{\Delta \varepsilon }}{\bf{F}}^H{{\bf{\Lambda }}}{{\bf{F}}_{{L_h}}}{\bf{h}} + {\bf{\Gamma }}_\varepsilon ^H{\bf{w}}_t \nonumber \\
+	&=& {{\bf{\Phi }}_{\Delta \varepsilon }}{\bf{h}} + {{\bf{w}}_{p\varepsilon }} \nonumber \\
 \end{eqnarray}
-Subsequently, the pilot information in the frequency domain can be expressed from
-\begin{eqnarray}\label{eq:yp}
-	{{\bf{\bar y}}_p} &=& {{\bf{S}}_p}{{\bf{F}}_K}{\bf{\bar r}} \nonumber \\
-	&=& {{\bf{S}}_p}{{\bf{F}}_K}{{\bf{\bar \Theta }}^H}{\bf{\Theta F}}_K^H{\bf{X}}_f{{\bf{F}}_{\left[ {:,1:N} \right]}}{\bf{h}} + {{\bf{S}}_p}{{\bf{F}}_K}{{\bf{\bar \Theta }}^H}{\bf{w}}\;,\\
-	&=& {{\bf{A}}_p}{\bf{h}} + {{{\bf{ w}}}_p}\nonumber 
+where
+\begin{eqnarray}\label{eq:Phi_delta}
+	{{\bf{\Phi }}_{\Delta \varepsilon }} = {{\bf{P}}_p}{\bf{F}}{{\bf{\Gamma }}_{\Delta \varepsilon }}{{\bf{F}}^H}{{\bf{\Lambda }}}{{\bf{F}}_{L_h}}\;,
 \end{eqnarray}
-where $\mathbf{S}_p$ denotes the pilot selection matrix, $N$ denotes the channel length, and ${{\bf{A}}_{p}}$ denotes the observation matrix with a size of $K_p \times N$. Due to the presence of CFO interference, the matrix product ${{\bf{F}}_K}{{\bf{\bar \Theta }}^H}{\bf{\Theta F}}_K^H$ deviates from the identity matrix, with its energy becoming concentrated around the main diagonal. Consequently, it is imperative to mitigate CFO interference. In our paper, we adopt the low computational complexity one-dimensional search method as proposed in Ref.~\cite{tao2017dft}. The LS algorithm is used to estimate the channel by
+\begin{eqnarray}\label{eq:Gamma_delta}
+	{{\bf{\Gamma }}_{\Delta \varepsilon }} \buildrel \Delta \over = {\mathop{\rm diag}\nolimits} (1,{e^{j2\pi \Delta \varepsilon /K}}, \ldots ,{e^{j2\pi \Delta \varepsilon (K - 1)/K}})\;,
+\end{eqnarray}
+\begin{eqnarray}\label{eq:delta_varesilon}
+  \Delta \varepsilon  = \varepsilon  - \hat \varepsilon \;.
+\end{eqnarray}
+Notations ${{\bf{\Phi }}_{\Delta \varepsilon }} \in \mathbb{C}^{K_p \times {L_h}}$ and ${{\bf{\Gamma }}_{\Delta \varepsilon }} \in \mathbb{C}^{K \times {K}}$ represents the distorted observation matrix and the residual phase rotation matrix respectively. Due to the residual CFO interference, the matrix product ${\bf{F}}{{\bf{\Gamma }}_{\Delta \varepsilon }}{{\bf{F}}^H}$ deviates from the identity matrix, with its energy becoming concentrated around the main diagonal. The channel estimation method, such as LS algorithm, is used to estimate the channel as
 \begin{eqnarray}\label{eq:LS}
-	{{\bf{\bar h} }} = {\left( {{\bf{A}}_p^H{{\bf{A}}_p}} \right)^{ - 1}}{\bf{A}}_p^H{{\bf{\bar y}}_p}\;,
+  {\bf{\hat h}} = {\left( {{\bf{\Phi }}_p^H{{\bf{\Phi }}_p}} \right)^{ - 1}}{\bf{\Phi }}_p^H{{\bf{y}}_p}\;,
 \end{eqnarray}
-where notation $\bf{\bar h}$ denotes the estimated channel matrix, and it can be defined as ${\bf{\bar h}} = \left( {{{\bar h}_1},{{\bar h}_2}, \cdots ,{{\bar h}_N}} \right)$. Considering a linear equalizer, the output OFDM symbols can be expressed as
+where ${{\bf{\Phi }}_p} = {{\bf{\Lambda }}_p}{{\bf{F}}_{{L_h}}} \in \mathbb{C}^{K_p \times {L_h}}$ denotes the observation matrix and $\mathbf{\Lambda}_p$ denotes the diagonal transmission pilot matrix. Subsequently, channel equalization is applied to demodulation, such as the output OFDM symbols based on a linear equalizer can be expressed as
 \begin{eqnarray}\label{eq:xbar}
-	{{\bf{\bar x}}_p} = \frac{{{{\bf{\bar  y}}_p}}}{{{{\bf{F}}_{\left[ {{\Phi _p},1:L} \right]}}{\bf{\bar h}}}}\;.
+	{{\bf{\hat x}}_f} = \frac{{{{\bf{y}}_a}}}{{{{\bf{F}}_a}{\bf{\hat h}}}}\;.
 \end{eqnarray}
-By minimizing the squared error criterion, the CFO compensation value can be obtained by
-\begin{eqnarray}\label{eq:CFO}
-	\hat \varepsilon = \mathop {\arg \min }\limits_\varepsilon  \left\| {{{\bf{x}}_p} - {{{\bf{\bar x}}}_p}} \right\|_2^2\;.
-\end{eqnarray}
-\par After obtaining the CFO estimation $\hat \varepsilon$, the compensated pilot and data information can be expressed as $\mathbf{\hat y}_p=\mathbf{S}_p\mathbf{F}_K\mathbf{{{\bf{\hat \Theta }}}}^H\mathbf{r}$ and ${{\bf{\hat y}}_d} = {{\bf{S}}_d}{{\bf{F}}_K}{{\bf{\hat \Theta }}^H}{\bf{r}}$, where ${{\bf{\hat \Theta }}^H}$ denotes the CFO compensation matrix with a CFO compensation value $\hat \varepsilon$. Following CFO estimation and compensation, the estimated channel $\mathbf{\hat h}$ can be obtained using many channel estimation algorithms. Subsequently, channel equalization based on a linear equalizer is conducted to obtain the output data symbols by
-\begin{eqnarray}\label{eq:xhar}
-	{{\bf{\hat x}}_d} = \frac{{{{{\bf{\hat y}}}_d}}}{{{{\bf{F}}_{\left[ {{\Phi _d},1:L} \right]}}{\bf{\hat h}}}}\;.
-\end{eqnarray}
-After de-mapping and de-interleaving, the output OFDM symbols are converted into ${\bf{\tilde x}}_d$, and its length is $N_b$ times that of ${\bf{\hat x }}_d$, where $N_b$ denotes the modulation bits per symbol. The sequence ${\bf{\tilde x}}_d$ is input into the channel decoder to recover the original information.
-\par Since accurate UWA channel estimation is essential to equalization and system performance, this paper focuses on improving channel estimation accuracy through physics-inspired denoising.
-% =========================================================================
-\section{Channel Model and Problem Formulation}
-\par UWA propagation is significantly affected by dynamic underwater environments. Due to acoustic velocity gradients and water non-uniformity, reflection and refraction result in significant multipath propagation. 
-\subsection{Channel Decomposition Model}\label{sec:decomposition}
-\par Based on propagation mechanisms, multipath components can be categorized into direct paths, sea surface reflections, and seafloor reflections. Following~\cite{whitmarsh1963underwater}, these eigenpaths can be classified into two main types based on their temporal characteristics: static paths and dynamic paths.
-\par Static paths originate from stable propagation environments, including direct paths, bottom-reflected paths, and stable refracted paths. Since water structure, seafloor topography, and sound speed profile remain relatively stable over short time scales, static paths exhibit stable time delays and slow amplitude variations, resulting in strong temporal correlation. In contrast, dynamic paths are primarily caused by sea surface reflections from time-varying, non-specular surfaces due to wind and waves. These paths exhibit dynamic time delays and fast amplitude variations, resulting in weak temporal correlation. Fig.~\ref{fig:channel_mechanisms} illustrates the propagation mechanisms of static and dynamic paths.
+where $\mathbf{y}_a=\mathbf{P}_a \mathbf{y}$ denotes , and $\mathbf{F}_a$ denotes the submatrix formed by the data set index $\mathcal{K}_a$ rows of the matrix $\mathbf{F}_{L_h}$.
+\par Note that, due to CFO residuals and channel estimation residuals, the noise no longer is pure Gaussian white noise as shown in~\eqref{eq:LS}. Since accurate UWA channel estimation is essential to equalization and system performance, and conventional channel denosing method lack of the utilization of the characteristic of UWA channels, this paper focuses on improving channel estimation accuracy through physics-inspired denoising.
 
+%====================================================================
+\section{Channel Model and Problem Formulation}
+UWA propagation is characterized by severe complexity due to the dynamic nature of the underwater environment. Acoustic velocity gradients and medium inhomogeneities induce significant refraction and reflection, resulting in rich multipath propagation effects.
+
+\subsection{Channel Decomposition Model} \label{sec:decomposition}
+\par Based on physical propagation mechanisms, multipath components can be categorized into direct paths, sea surface reflections, and seafloor reflections, etc. Following the classification in~\cite{whitmarsh1963underwater}, these eigenpaths are decomposed into two distinct categories based on their temporal stability: static paths and dynamic paths.
+
+\par Static paths originate from stable boundary interactions, including direct line-of-sight propagation, bottom reflections, and stable refracted paths. Since the water column structure, seafloor topography, and sound speed profile (SSP) remain relatively invariant over short observation intervals, static paths exhibit constant time delays and slowly varying amplitudes, manifesting strong temporal correlation. Conversely, dynamic paths are predominantly induced by the time-varying, non-specular sea surface driven by wind and waves. These components are characterized by rapid fluctuations in both delay and amplitude, resulting in weak temporal correlation. Fig.~\ref{fig:channel_mechanisms} illustrates these propagation mechanisms.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=8cm]{figs/channel_mechanisms.eps}
-	\caption{Schematic diagram of channel mechanisms.}
+	\includegraphics[width=\linewidth]{figs/channel_mechanisms.eps}
+	\caption{Schematic diagram of the channel propagation mechanisms illustrating static and dynamic multipath components.}
 	\label{fig:channel_mechanisms}
 \end{figure}
 
-\par Consequently, we can establish UWA channel mathematical model based on static and dynamic paths decouple. Let $N$ denotes channel length and the $t$ time slot channel impulse respond in the time domain $\mathbf{h}^T\in\mathbb{C}^{N\times 1}$ can be expressed as 
+Mathematically, we model the UWA channel by decoupling these components. Let $N$ denote the channel delay spread length. The CIR vector at time slot $t$, denoted by $\mathbf{h}(t) \in \mathbb{C}^{N \times 1}$, is expressed as:
 \begin{equation}\label{eq:h}
-	{{\bf{h}}^T}\left( t \right) = {\bf{h}}_s^T\left( t \right) + {\bf{h}}_d^T\left( t \right)\;,
+	\mathbf{h}(t) = \mathbf{h}_s(t) + \mathbf{h}_d(t),
 \end{equation}
-where $\mathbf{h}_s\in\mathbb{C}^{N\times 1}$ and $\mathbf{h}_d\in\mathbb{C}^{N\times 1}$ denote static and dynamic channels respectively. Subsequently, considering the channel matrix ${\mathbf{H}} \in {^{N \times M}}$ with a observation window of $M$ can be expressed as
+where $\mathbf{h}_s(t)$ and $\mathbf{h}_d(t)$ represent the static and dynamic channel vectors, respectively. Considering an observation window of $M$ consecutive time slots, the aggregate delay-time channel matrix $\mathbf{H} \in \mathbb{C}^{M \times N}$ is constructed by stacking the transposed CIR vectors:
 \begin{equation}\label{eq:H}
-	\begin{array}{l}
-		{{\bf{H}}^T} = {\bf{H}}_s^T + {\bf{H}}_d^T\;\\
-		\left[ {\begin{array}{*{20}{c}}
-				{{{\bf{h}}^T}\left( t \right)}\\
-				{{{\bf{h}}^T}\left( {t + 1} \right)}\\
-				\cdots \\
-				{{{\bf{h}}^T}\left( {t + M} \right)}
-		\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}
-				{{\bf{h}}_s^T\left( t \right)}\\
-				{{\bf{h}}_s^T\left( {t + 1} \right)}\\
-				\cdots \\
-				{{\bf{h}}_s^T\left( {t + M} \right)}
-		\end{array}} \right] + \left[ {\begin{array}{*{20}{c}}
-				{{\bf{h}}_d^T\left( t \right)}\\
-				{{\bf{h}}_d^T\left( {t + 1} \right)}\\
-				\cdots \\
-				{{\bf{h}}_d^T\left( {t + M} \right)}
-		\end{array}} \right]
-	\end{array}\;.
+	\mathbf{H} = \mathbf{H}_s + \mathbf{H}_d = 
+	\begin{bmatrix}
+		\mathbf{h}_s^T(t) \\
+		\mathbf{h}_s^T(t+1) \\
+		\vdots \\
+		\mathbf{h}_s^T(t+M-1)
+	\end{bmatrix} + 
+	\begin{bmatrix}
+		\mathbf{h}_d^T(t) \\
+		\mathbf{h}_d^T(t+1) \\
+		\vdots \\
+		\mathbf{h}_d^T(t+M-1)
+	\end{bmatrix}.
 \end{equation}
-\subsection{Static and dynamic channel characteristics}\label{sec:channel_characteristic}
-\par In this subsection, we provide the static and dynamic channel characteristics in terms of time domain and delay domain, respectively based on physics mechanisms.
+
+\subsection{Physical Characteristics of Sub-channels} \label{sec:channel_characteristic}
+In this subsection, we analyze the statistical properties of the decomposed channels in both the delay and time domains.
+
 \subsubsection{Delay Domain}
-\par From the delay domain, i.e., considering one time slot UWA channel as shown in Eq.~\eqref{eq:h}. The UWA channel exhibits significant sparsity characteristic, it can be expressed as $\kappa  \ll N$, where $\kappa$ and $N$ denotes the non-zero elements in UWA channel and channel length respectively. The static and dynamic channel is one part of UWA channels, obviously, the both sub-channels also exhibits significant sparsity, i.e.,
-\begin{eqnarray}
-	\begin{array}{l}
-		{\kappa _s} \ll N\\
-		{\kappa _d} \ll N
-	\end{array}
-\end{eqnarray}
-where $\kappa _s$ and $\kappa _d$ denote the non-zero elements of static channel and dynamic channel respectively, and they satisfy $\kappa =\kappa _s+\kappa _d$.
+UWA channels are inherently sparse. For a channel length $N$, the number of significant paths $\kappa$ satisfies $\kappa \ll N$, a property widely utilized in UWA channel denoising methods. Crucially, both the static and dynamic components inherit this sparsity property:
+\begin{equation}
+	\|\mathbf{h}_s(t)\|_0 = \kappa_s \ll N, \quad \|\mathbf{h}_d(t)\|_0 = \kappa_d \ll N,
+\end{equation}
+where $\kappa_s$ and $\kappa_d$ denote the sparsity levels of the static and dynamic sub-channels, respectively, with the total sparsity satisfying $\kappa \approx \kappa_s + \kappa_d$.
+
 \subsubsection{Time Domain}
+The two components exhibit distinct temporal statistics. Experimental studies~\cite{jiang2022exploiting, zhou2017exploiting} suggest that the amplitude of the static component typically follows a Ricean distribution (indicating a dominant stable component). In contrast, the dynamic component, particularly at large grazing angles, exhibits empirical statistics often fitted by a Gamma distribution, as shown in Fig.~\ref{fig:Gamma}.
+
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=8cm]{figs/Gamma.pdf}
-	\caption{Gamma distribution of dynamic multipath amplitude.}
+	\includegraphics[width=\linewidth]{figs/Gamma.pdf}
+	\caption{Probability density function of the dynamic multipath amplitude fitting a Gamma distribution.}
 	\label{fig:Gamma}
 \end{figure}
-\par UWA channels exhibit significant time-varying characteristics. Experimental results~\cite{jiang2022exploiting, zhou2017exploiting, jiang2021exploiting} indicate that the envelope distribution of the received signal in the direct path follows Gaussian distribution, while the surface reflected path exhibits Gamma distribution, as shown in Fig.~\ref{fig:Gamma}, particularly at large grazing angles. Consequently, considering each multipath component of the static component in the time domain, the amplitude time-varying characteristic can be expressed as:
+
+Specifically, let $h_{s,\tau}(t)$ denote the $\tau$-th tap of the static channel at time $t$. Its complex coefficient is modeled as a non-zero mean complex Gaussian variable:
 \begin{equation}
-{a_s}\left( \tau  \right) \sim {\cal N} \left( {{\mu _s},\sigma _s^2} \right)\;,
+	h_{s,\tau}(t) \sim \mathcal{CN}(\mu_s, \sigma_s^2).
 \end{equation}
-where $a_s$ denotes the amplitude of CIR, and $\mathcal{N}(\mu_s, \sigma_s^2)$ denotes Gaussian distribution with mean $\mu_s$ and variation $\sigma_s$. Due to the water body and seafloor remain stable, the delay of multipath is remain stable, and it can be expressed as 
+Due to environmental stability, the set of active tap indices for the static channel, denoted by $\Upsilon_s(t)$, remains invariant over the observation window:
 \begin{equation}
-	\Upsilon {}_s\left( {t + 1} \right) = \Upsilon {}_s\left( t \right)
+	\Upsilon_s(t + 1) = \Upsilon_s(t).
 \end{equation}
-where $\Upsilon (t)$ denotes the index set of static in the $t$ slot.
-\par Focusing on dynamic multipath caused by dynamic sea surface, considering each multipath component of the dynamic component in the time domain, the amplitude time-varying characteristic can be expressed as:
+
+In contrast, the dynamic component $h_{d,\tau}(t)$ is modeled with a random phase and an amplitude $|h_{d,\tau}(t)|$ that follows a Gamma distribution:
 \begin{equation}
-{a_d}\left( \tau  \right) \sim \Gamma ({\alpha _d},{\beta _d}),
+	|h_{d,\tau}(t)| \sim \Gamma(\alpha_d, \beta_d),
 \end{equation}
-where $\Gamma ({\alpha _d},{\beta _d})$ denotes Gamma distribution with shape parameter $\alpha_d$ and inverse scale parameter $\beta_d$. Due to the rapid motion of sea surface waves, the positions of reflection points undergo significant and rapid changes, resulting in substantial jitter in the propagation time delay of the paths. Hence, the time delay variation is modeled as a random perturbation, implemented by adding a zero-mean random variable $\mu_d=0$ to the Bellhop-generated fixed path delay. The variance of this variable $\sigma_d$ dictates the intensity of the resultant fluctuation. 
-\par From the aspect of temporal correlation, for static component, due to stable water structure, seafloor topography, sediment composition, and SSP in short time. Hence, the channel of the adjacent moment has a strong correlation and can be expressed as 
-\begin{eqnarray}
-	\mathbb{E}[\|\mathbf{H}_{\mathrm{s}}(t+\Delta t)-\mathbf{H}_{\mathrm{s}}(t)\|_F^2] \approx 0\;,
-\end{eqnarray}
-where $\Delta t \le {T_c}$, and $T_c$ denotes channel correlation time. As for dynamic component, because sea surface exhibits significantly dynamic characteristic, hence, the channel of the adjacent moment has a strong correlation and can be expressed as  
-\begin{eqnarray}
-\mathbb{E}[{{\bf{H}}_{d}}(t + \Delta t){\bf{H}}_d^T(t)] \approx 0\;.
-\end{eqnarray}
+where $\alpha_d$ and $\beta_d$ are the shape and inverse scale parameters, respectively. Furthermore, the rapid motion of the sea surface introduces jitter in the path delays. This is modeled by adding a zero-mean random perturbation to the nominal path delays, with variance $\sigma_d^2$ quantifying the fluctuation intensity related to sea surface roughness~\cite{preisig2004surface}.
 
-%\par In summary, the key properties can be summarized as follows:
-%\begin{itemize}
-%	\item \textbf{Sparsity}: When $L_s \ll \min(M,N)$, $\bm{H}_{\mathrm{s}}$ has sparse representation in angular domain via DFT matrix $\bm{F}$: $\|\bm{F}^H\bm{H}_{\mathrm{s}}\bm{F}\|_0 \ll MN$.
-%	\item \textbf{Low-Rank}: $L_d \ll \min(M,N)$, $\text{rank}(\bm{H}_{\mathrm{d}}) \leq L_d$.
-%	\item \textbf{Temporal Correlation}: For static component, $\mathbb{E}[\|\bm{H}_{\mathrm{s}}(t+\Delta t)-\bm{H}_{\mathrm{s}}(t)\|_F^2] \approx 0$ when $\Delta t \ll T_{\text{static}}$.
-%\end{itemize}
-
-
-
-%\begin{equation}
-%	{{\bf{h}}_{\rm{s}}}(t) = \sum\limits_{i = 0}^{{N_s} - 1} {{{\bf{a}}_s}\left( i \right)\delta \left( {t - {\tau _i}} \right)} 
-%\end{equation}
-%where ${\delta \left( {t} \right)}$ denotes the impulse function, ${{\tau _i}}$ denotes the $i$-th multipath delay in the $t$ timeslot, $N_s$ denotes the number of multipath. Notation $\mathbf{a}_s$ denotes the amplitude of CIR, and it satisfies Gaussian distribution, which can be expressed as
-
-%\subsection{Noisy Observation Model}
-%\par The receiver obtains LS channel estimate through orthogonal pilot transmission:
-%\begin{equation}
-%\widetilde{\bm{H}}=\bm{H}+\bm{N}=\bm{H}_{\mathrm{s}}+\bm{H}_{\mathrm{d}}+\bm{N},
-%\end{equation}
-%where $\bm{N}\sim\mathcal{CN}(\bm{0},\sigma_n^2\bm{I}_{MN})$ is additive white Gaussian noise. The signal-to-noise ratio is defined as
-%\begin{equation}
-%\text{SNR}=10\log_{10}\frac{\mathbb{E}[\|\bm{H}\|_F^2]}{\mathbb{E}[\|\bm{N}\|_F^2]}=10\log_{10}\frac{\|\bm{H}\|_F^2}{MN\sigma_n^2}.
-%\end{equation}
-
-%% 问题建立
-\subsection{Optimization Problem}
-\par Since estimated channels inevitably suffer from noise interference, accurate channel estimation is essential for OFDM system performance. Our goal is to improve channel estimation accuracy through denoising. The optimization problem can be formulated as 
+From the perspective of temporal correlation, the static component exhibits high coherence between adjacent time slots due to the stability of the water column and seafloor. This implies that the differential energy is negligible:
 \begin{equation}
-\mathop {\min }\limits_{{\bf{\hat H}}} \mathbb{E} \left[ {\left\| {{\bf{H}} - {\bf{\hat H}}} \right\|_F^2} \right]\;.
+	\mathbb{E}\left[\|\mathbf{h}_s(t+\Delta t) - \mathbf{h}_s(t)\|_2^2\right] \approx 0,
 \end{equation}
-\par Conventional deep learning methods treat the channel matrix as a single entity without exploiting physical characteristics. Based on the analysis in Section~\ref{sec:decomposition} and~\ref{sec:channel_characteristic}, UWA channels can be decomposed into static and dynamic components. We reformulate the optimization problem to jointly estimate these components:
-\begin{equation}
-\begin{aligned}
-&\mathop {\min }\limits_{{{{\bf{\hat H}}}_{\rm{s}}},{{{\bf{\hat H}}}_d}} \mathbb{E} \left[ {\underbrace {\left\| {{{\bf{H}}_s} - {{{\bf{\hat H}}}_s}} \right\|_F^2}_{{\rm{static MSE}}} + \underbrace {\left\| {{{\bf{H}}_d} - {{{\bf{\hat H}}}_d}} \right\|_F^2}_{{\rm{dynamic MSE}}}} \right]\\
-&\text{subject to:}\quad\hat{\mathbf{H}}_{\mathrm{s}}\in\mathcal{S},\quad\hat{\mathbf{H}}_{\mathrm{d}}\in\mathcal{D},
-\end{aligned}
-\label{eq:optimization}
+where $\Delta t$ is within the channel coherence time $T_c$. Conversely, the dynamic component decorrelates rapidly due to surface shake. The cross-correlation between adjacent time slots is weak:
+\begin{equation} \label{eq:decorr}
+	\mathbb{E}\left[\mathbf{h}_d^H(t + \Delta t)\mathbf{h}_d(t)\right] \approx 0, \quad \text{for } \Delta t \ge \tau_{\text{corr}},
 \end{equation}
-where $\mathcal{S}$ denotes the space of sparse matrices and $\mathcal{D}$ denotes low-rank matrices. The final estimate is $\hat{\mathbf{H}}=\hat{\mathbf{H}}_{\mathrm{s}}+\hat{\mathbf{H}}_{\mathrm{d}}$.
+where $\tau_{\text{corr}}$ denotes the correlation time of the dynamic surface scattering.
 
-\par Problem~\eqref{eq:optimization} is ill-posed without prior knowledge. Classical approaches assume known sparsity level or rank, which are unavailable in practice. Moreover, the static-dynamic ambiguity makes decomposition non-unique without additional constraints.
+\subsection{Problem Formulation}
+Accurate CSI is critical for OFDM system performance but is often degraded by noise, including residual CFO interference, estimated channel error, and ambient noise. The goal is to recover the clean channel matrix $\mathbf{H}$ from noisy observations $\hat{\mathbf{H}}_{\text{raw}}$. The baseline denoising problem minimizes the mean squared error (MSE):
+\begin{equation}
+	\min_{\hat{\mathbf{H}}} \mathbb{E} \left[ \|\mathbf{H} - \hat{\mathbf{H}}\|_F^2 \right].
+\end{equation}
+Conventional methods treat $\mathbf{H}$ as a homogeneous entity. In this paper, leveraging the physics-based decomposition analyzed above, we reformulate the problem to jointly estimate the static and dynamic components by exploiting their distinct structures. The optimization problem is formulated as:
+\begin{equation} \label{eq:optimization}
+	\begin{aligned}
+		& \min_{\hat{\mathbf{H}}_s, \hat{\mathbf{H}}_d} \mathbb{E} \left[ \underbrace{\|\mathbf{H}_s - \hat{\mathbf{H}}_s\|_F^2}_{\text{Static Fidelity}} + \underbrace{\|\mathbf{H}_d - \hat{\mathbf{H}}_d\|_F^2}_{\text{Dynamic Fidelity}} \right] \\
+		& \text{subject to:} \quad \hat{\mathbf{H}}_s \in \mathcal{S}, \quad \hat{\mathbf{H}}_d \in \mathcal{D},
+	\end{aligned}
+\end{equation}
+where $\mathcal{S}$ represents the set of matrices satisfying sparsity and temporal consistency constraints (reflecting the stable sparse support), and $\mathcal{D}$ represents the set of matrices satisfying specific low-rank or structural constraints consistent with dynamic scattering. The final estimated channel is reconstructed as $\hat{\mathbf{H}} = \hat{\mathbf{H}}_s + \hat{\mathbf{H}}_d$.
+
+This decomposition problem is ill-posed without strong priors. While classical methods struggle with unknown sparsity levels or rank deficiency, the proposed physics-inspired deep learning framework (detailed in the subsequent section) learns these implicit constraints from data.
 
 % =========================================================================
 \section{Theoretical Foundations}
-\par Before describing DSS-Net, we establish theoretical connections to sparse recovery and low-rank matrix completion that motivate our physics-informed loss function design. 
+\par Before describing DSS-Net, we establish theoretical connections to sparse recovery and low-rank matrix completion that motivate our physics-informed loss function design.
 
 \subsection{Sparse Recovery Framework}
-\par Consider the angular-domain representation of static component via $M\times M$ DFT matrix $\mathbf{F}_M$ and $N\times N$ DFT matrix $\mathbf{F}_N$:
+\par Consider the Delay-Doppler domain representation of static component via $M\times M$ DFT matrix $\mathbf{F}_M$
 \begin{equation}
-\mathbf{X}_{\mathrm{s}}=\mathbf{F}_M^H\mathbf{H}_{\mathrm{s}}\mathbf{F}_N,
+	{{\bf{X}}_s} = {\bf{F}}_M{{\bf{H}}_s}\;,
 \end{equation}
 where $\mathbf{X}_{\mathrm{s}}$ is approximately $k$-sparse with $k \ll MN$. The observation model becomes
 \begin{equation}
-\widetilde{\mathbf{H}}=\mathbf{F}_M\mathbf{X}_{\mathrm{s}}\mathbf{F}_N^H+\mathbf{H}_{\mathrm{d}}+\mathbf{N}\;,
+\widetilde{\mathbf{H}}=\mathbf{F}_M^H\mathbf{X}_{\mathrm{s}}+\mathbf{H}_{\mathrm{d}}+\mathbf{N}\;,
 \end{equation}
-where $\mathbf{N}$ denotes background noise. If the sensing operator $\mathcal{A}(\mathbf{X})=\mathbf{F}_M\mathbf{X}\mathbf{F}_N^H$ satisfies restricted isometry property (RIP) of order $2k$ with constant $\delta_{2k}<\sqrt{2}-1$ \cite{Candes2005Decoding}, then $\ell_1$ minimization
+where $\mathbf{N}$ denotes background noise. If the sensing operator $\mathcal{A}(\mathbf{X})=\mathbf{F}_M^H\mathbf{X}$ satisfies restricted isometry property (RIP) of order $2k$ with constant $\delta_{2k}<\sqrt{2}-1$ \cite{Candes2005Decoding}, then $\ell_1$ minimization
 \begin{equation}
-\min_{\mathbf{X}}\|\mathbf{X}\|_1\quad\text{s.t.}\quad\|\widetilde{\mathbf{H}}-\mathbf{F}_M\mathbf{X}\mathbf{F}_N^H-\mathbf{H}_{\mathrm{d}}\|_F\leq\epsilon
+\min_{\mathbf{X}}\|\mathbf{X}\|_1\quad\text{s.t.}\quad\|\widetilde{\mathbf{H}}-\mathbf{F}_M^H\mathbf{X}-\mathbf{H}_{\mathrm{d}}\|_F\leq\epsilon
 \end{equation}
 recovers $\mathbf{X}_{\mathrm{s}}$ with error $\|\mathbf{X}_{\mathrm{s}}-\hat{\mathbf{X}}_{\mathrm{s}}\|_F\leq C\sigma_n\sqrt{k\log(MN)}$ for constant $C$ depending on $\delta_{2k}$ \cite{Candes2006Stable}.
 
@@ -297,7 +263,7 @@ For dynamic component with rank $r \ll \min(M,N)$, consider the nuclear norm min
 \end{equation}
 where $\|\mathbf{X}\|_*=\sum_i\sigma_i(\mathbf{X})$ is the sum of singular values. Under incoherence conditions \cite{Candes2009Exact}, this recovers $\mathbf{H}_{{d}}$ exactly when number of observations exceeds $O(r(M+N)\log^2(MN))$.
 
-The nuclear norm gradient has simple form \cite{Watson1992Characterization}:
+The nuclear norm gradient has a simple form \cite{Watson1992Characterization}:
 \begin{equation}
 \nabla_{\mathbf{X}}\|\mathbf{X}\|_*=\mathbf{U}\mathbf{V}^H,
 \end{equation}
@@ -317,12 +283,12 @@ where $\langle\mathbf{A},\mathbf{B}\rangle_F=\text{tr}(\mathbf{A}^H\mathbf{B})$ 
 
 % =========================================================================
 \section{DSS-Net Architecture}
-%\par The DSS-Net is included into the receiver of UWA communication systems, as shown in the upper part of Fig.~\ref{fig:DSS-Net}. The DSS-Net is focusing on optimize the output estimated channel, which improving the equalization performance.
+\par The DSS-Net is included into the receiver of UWA communication systems, as shown in the upper part of Fig.~\ref{fig:DSS-Net}. The DSS-Net is focusing on optimize the output estimated channel, which improving the equalization performance.
 
 \begin{figure*}[htbp]
 	\centering
-	\includegraphics[width=15cm]{figs/channel_mechanisms.jpg}
-	\caption{Schematic diagram of DSS-Net.}
+	\includegraphics[width=\textwidth]{figs/dss_net_framework.pdf}
+	\caption{Overview of the proposed DSS-Net architecture. The framework consists of three stages: (a) Preprocessing: the complex channel matrix is decomposed into real and imaginary components; (b) DSS-Net: a shared encoder extracts common features, while dual symmetric decoders separately reconstruct static and dynamic components with squeeze-and-excitation (SE) attention at the bottleneck; (c) Postprocessing: the outputs are combined to obtain the denoised channel.}
 	\label{fig:DSS-Net}
 \end{figure*}
 
@@ -410,7 +376,7 @@ The hierarchy $\alpha_{\mathrm{t}}>\alpha_{\mathrm{d}}>\alpha_{\mathrm{s}}$ refl
 \mathcal{L}_{\text{sparse}}=\frac{1}{B}\sum_{b=1}^{B}\|\hat{\mathbf{H}}_{\mathrm{s}}^{(b)}\|_1=\frac{1}{B}\sum_{b=1}^{B}\sum_{m,n}|\hat{H}_{\mathrm{s},mn}^{(b)}|.
 \end{equation}
 
-From sparse recovery theory \cite{Candes2005Decoding}, $\ell_1$ minimization provably recovers sparse signals under RIP. Our weak regularization ($\lambda_{\text{sparse}}=10^{-4}$) provides soft constraint without over-constraining.
+According to sparse recovery theory \cite{Candes2005Decoding}, $\ell_1$ can minimization provably recovers sparse signals under RIP. Our weak regularization ($\lambda_{\text{sparse}}=10^{-4}$) provides soft constraint without over-constraining.
 
 \subsection{Nuclear Norm Regularization}
 
@@ -433,13 +399,13 @@ Implementation: We compute SVD in float32 for numerical stability:
 \begin{equation}
 \mathcal{L}_{\text{temp}}^s=\frac{1}{B}\sum_{b=1}^{B}\sum_{i}\|[\hat{\mathbf{H}}_{\mathrm{s}}^{(b)}]_{:,i+1}-[\hat{\mathbf{H}}_{\mathrm{s}}^{(b)}]_{:,i}\|_2^2,
 \end{equation}
-where subscript $:,i$ denotes $i$-th column (frequency or spatial dimension).
+where the subscript $:,i$ denotes $i$-th column (frequency or spatial dimension).
 
 \par \textit{Dynamic Variation:} Encourage moderate change via hinge loss:
 \begin{equation}
 \mathcal{L}_{\text{temp}}^d=\frac{1}{B}\sum_{b=1}^{B}\max\Bigl(0,\epsilon-\sum_{i}\|[\hat{\mathbf{H}}_{\mathrm{d}}^{(b)}]_{:,i+1}-[\hat{\mathbf{H}}_{\mathrm{d}}^{(b)}]_{:,i}\|_2^2\Bigr),
 \end{equation}
-with threshold $\epsilon=0.01$. This prevents trivial solutions where $\hat{\mathbf{H}}_{\mathrm{d}}\approx 0$.
+with threshold $\epsilon=0.01$. This prevents the degenerate solution $\hat{\mathbf{H}}_{\mathrm{d}}\approx 0$.
 
 Total temporal loss: $\mathcal{L}_{\text{temp}}=\mathcal{L}_{\text{temp}}^s+\mathcal{L}_{\text{temp}}^d$.
 
@@ -471,12 +437,12 @@ with hyperparameters $\lambda_{\text{sparse}}=\lambda_{\text{rank}}=10^{-4}$, $\
 % =========================================================================
 %\section{Dataset and Implementation}
 \section{Simulation Experiments}
-\par We evaluate DSS-Net against baseline methods including no processing, SVD truncation~\cite{suresh2017two}, Wavelet Shrinkage~\cite{Donoho1995Wavelet}, CResNet~\cite{CResNet_TWC21}, DnCNN~\cite{Zhang2017DnCNN}, and U-Net~\cite{wei2021physics}. Performance is evaluated using normalized mean squared error (NMSE) and bit error rate (BER). The NMSE is defined as:
+\par We evaluate DSS-Net against baseline methods including no processing, SVD truncation~\cite{suresh2017two}, Wavelet Shrinkage~\cite{Donoho1995Wavelet}, CResNet~\cite{CResNet_TWC21}, DnCNN~\cite{Zhang2017DnCNN}, and U-Net~\cite{wei2021physics}. Performance is evaluated using normalized mean squared error (NMSE) and bit error rate (BER). The NMSE is defined as follows:
 \begin{equation}
 	\text{NMSE}_{\text{dB}}=10\log_{10}\frac{\|\mathbf{H}-\hat{\mathbf{H}}\|_F^2}{\|\mathbf{H}\|_F^2}\;.
 \end{equation}
 \subsection{Ray-Tracing Channel Generation}
-\par We use the Bellhop ray-tracing model~\cite{bellhop} to generate UWA channel impulse responses (CIRs). The channel matrix is constructed following the decomposition model in Section~\ref{sec:decomposition}. Table~\ref{tab:Bellhop} lists the simulation parameters. Transmitter and receiver depths range from 0.5~m to 13.5~m in 15~m water depth, with horizontal distances from 0.5~km to 5~km. The sound speed profile (SSP), shown in Fig.~\ref{fig:S_SSP}, is derived from sea trial measurements in Xiamen Harbor. Fig.~\ref{fig:S_channel} shows an example CIR with complex multipath structure and maximum delay of 28.75~ms.
+\par We use the Bellhop ray-tracing model~\cite{bellhop} to generate UWA CIR. The channel matrix is constructed following the decomposition model in Section~\ref{sec:decomposition}. Table~\ref{tab:Bellhop} lists the simulation parameters. Transmitter and receiver depths range from 0.5~m to 13.5~m in 15~m water depth, with horizontal distances from 0.5~km to 5~km. The SSP, shown in Fig.~\ref{fig:S_SSP}, is derived from sea trial measurements in Xiamen Harbor.
 \begin{table}[!htbp]
 	\caption{\textsc{Ray-Tracing Dataset Generation Parameters.} Channel impulse responses are generated using the Bellhop acoustic ray-tracing model with the sound speed profile measured in Xiamen Harbor. Static and dynamic multipath components are distinguished by reflection counts from sea floor and sea surface, respectively.}
 	\label{tab:Bellhop}
@@ -484,7 +450,7 @@ with hyperparameters $\lambda_{\text{sparse}}=\lambda_{\text{rank}}=10^{-4}$, $\
 	\setlength{\tabcolsep}{4pt}
 	\renewcommand\arraystretch{1.15}
 	\small
-	\begin{tabular}{p{165pt} >{\centering\arraybackslash}p{25pt} >{\centering\arraybackslash}p{50pt}}
+	\begin{tabular}{p{150pt} >{\centering\arraybackslash}p{25pt} >{\centering\arraybackslash}p{50pt}}
 		\toprule[1.5pt]
 		\rowcolor{tableheader}
 		\textbf{Parameter} & \textbf{Symbol} & \textbf{Value}\\
@@ -515,36 +481,27 @@ with hyperparameters $\lambda_{\text{sparse}}=\lambda_{\text{rank}}=10^{-4}$, $\
 	\end{tabular}
 	\renewcommand\arraystretch{1.0}
 \end{table}
+
+\par To generate the channel matrix from the CIRs generated by the Bellhop model, we adopt the decomposition model and characteristics analyzed in Section~\ref{sec:decomposition}. The relevant parameters are also summarized in Table~\ref{tab:Bellhop}. The static and dynamic multipath determination depends on the output reflection counts caused by sea floor and sea surface in the Bellhop model. A sample of channel matrix and its decomposition is shown in Fig.~\ref{fig:matrix}, showing the characteristic of static and dynamic in the time domain. This yields supervised triplets $(\mathbf{H}_s,\mathbf{H}_d,\mathbf{H})$ for training.
+
 \begin{figure}[!htbp]
 	\centering
 	\subfloat[\label{fig:S_SSP}]
-	{
-		\includegraphics[width=4.2cm]{figs/Bellhop_SSP.eps}
-	}
-	\subfloat[\label{fig:S_channel}]
-	{
-		\includegraphics[width=4cm]{figs/Bellhop.eps}
-	}
-	\caption{Simulation environments. (a) SSP obtained in Xiamen Harbor. (b) Simulated UWA channel.}
-	\label{fig:Bellhop}
-\end{figure}
-
-\par To generate the channel matrix based on the CIR generating by the Bellhop model, we adopt the channel model and characteristics analysis in Section~\ref{sec:decomposition}. The relative parameters are also shown in Table~\ref{tab:Bellhop}. The static and dynamic multipath determination depends on the output reflection counts caused by sea floor and sea surface in the Bellhop model. A sample of channel matrix based on the CIR shown in Fig.~\ref{fig:S_channel} and its decomposition is shown in Fig.~\ref{fig:matrix}, showing the characteristic of static and dynamic in the time domain. This yields supervised triplets $(\mathbf{H}_s,\mathbf{H}_d,\mathbf{H})$ for training.
-
-\begin{figure}[!htbp]
-	\centering
+{
+	\includegraphics[width=0.45\linewidth]{figs/Bellhop_SSP.eps}
+}
 	\subfloat[\label{fig:All_channel}]
 	{
-		\includegraphics[width=6cm]{figs/All_channel.eps}
+		\includegraphics[width=0.45\linewidth]{figs/All_channel.eps}
 	}
 	\\
 	\subfloat[\label{fig:Static_channel}]
 	{
-		\includegraphics[width=4cm]{figs/Static_channel.eps}
+		\includegraphics[width=0.45\linewidth]{figs/Static_channel.eps}
 	}
 	\subfloat[\label{fig:Dynamic_channel}]
 	{
-		\includegraphics[width=4cm]{figs/Dynamic_channel.eps}
+		\includegraphics[width=0.45\linewidth]{figs/Dynamic_channel.eps}
 	}
 	\caption{Simulation environments. (a) SSP used in the Bellhop model. (b) Simulated UWA channel.}
 	\label{fig:matrix}
@@ -584,13 +541,44 @@ with hyperparameters $\lambda_{\text{sparse}}=\lambda_{\text{rank}}=10^{-4}$, $\
 		\end{tabular}
 	\renewcommand\arraystretch{1.0}
 \end{table}
-\par Finally, the statistics of generated Dataset is as follow: 
- \begin{itemize}
- \item Total: 23,742 channel snapshots
- \item Train: 18,994 (80\%), Val: 2,374 (10\%), Test: 2,374 (10\%)
- \item Power ratio: $\|\mathbf{H}_s\|_F^2/\|\mathbf{H}_d\|_F^2\in[-20,+20]$ dB
- \item Storage: 5.5 GB (complex128 precision)
- \end{itemize}
+\par The generated dataset statistics are summarized in Table~\ref{tab:dataset_stats}.
+
+\begin{table}[htbp]
+	\centering
+	\caption{\textsc{Ray-Tracing Dataset Statistics.} The dataset provides supervised triplets $(\mathbf{H}_s, \mathbf{H}_d, \mathbf{H})$ for training DSS-Net with ground-truth decomposition labels.}
+	\label{tab:dataset_stats}
+	\renewcommand{\arraystretch}{1.15}
+	\setlength{\tabcolsep}{6pt}
+	\small
+	\begin{tabular}{l >{\centering\arraybackslash}p{4.5cm}}
+		\toprule[1.5pt]
+		\rowcolor{tableheader}
+		\textbf{Property} & \textbf{Value} \\
+		\midrule[1pt]
+		\rowcolor{tablerow1}
+		Total snapshots & 23,742 \\
+		\rowcolor{tablerow2}
+		Training set & 18,994 (80\%) \\
+		\rowcolor{tablerow1}
+		Validation set & 2,374 (10\%) \\
+		\rowcolor{tablerow2}
+		Test set & 2,374 (10\%) \\
+		\rowcolor{tablerow1}
+		Channel dimension & $100 \times 150$ (time $\times$ delay) \\
+		\rowcolor{tablerow2}
+		Static/dynamic power ratio & $[-20, +20]$~dB \\
+		\rowcolor{tablerow1}
+		Data precision & complex128 \\
+		\rowcolor{tablerow2}
+		Storage size & 5.5~GB \\
+		\bottomrule[1.5pt]
+	\end{tabular}
+	\renewcommand{\arraystretch}{1.0}
+\end{table}
+
+\par \textbf{Data Augmentation:} To improve generalization, we apply online augmentation during training: (i) \textit{spatial masking} (probability 0.3): randomly zero 10\% of delay bins to simulate partial channel measurements; (ii) \textit{noise injection} (probability 0.3): add Gaussian noise at SNR uniformly sampled from 20--35~dB. These augmentations expose the network to diverse degradation patterns without modifying the underlying physical decomposition labels.
+
+\par \textbf{Sea Trial Data:} In addition to the simulated dataset, we collect real channel measurements from two sea trial campaigns. The Wuyuan Bay experiment provides 1,200 channel snapshots with corresponding BER measurements for end-to-end evaluation. The Fuxian Lake experiment provides 150 channel snapshots at three receiver depths (5~m, 7~m, 9~m) for analyzing depth-dependent decomposition characteristics. While ground-truth decomposition is unavailable for real data, these measurements enable evaluation of denoising gain, estimated SNR improvement, and physical consistency of the learned decomposition.
 
 \subsection{Training Configuration}
 \par Optimizer: AdamW with $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$
@@ -623,7 +611,7 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 %\section{Experimental Results}
 \subsection{Simulation Experimental Results and Analysis}
 \subsubsection{Baseline Comparisons}
-\par For comparison fair, all deep learning methods trained on same dataset with identical procedures. We compare against:
+\par For fair comparison, all deep learning methods trained on same dataset with identical procedures. We compare against:
 \begin{itemize}
 \item \textbf{No Processing}: Direct use of LS estimate
 \item \textbf{SVD Truncation}: Retain top-$r$ singular values \cite{suresh2017two}
@@ -631,26 +619,26 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 \item \textbf{CResNet}: 20-layer complex residual network \cite{CResNet_TWC21}
 \item \textbf{DnCNN}: 17-layer denoising CNN \cite{Zhang2017DnCNN}
 \item \textbf{U-Net Baseline}: Single-decoder U-Net (no decomposition) ~\cite{wei2021physics}
-\item \textbf{Perfect Estimation}: Known channel.
+%\item \textbf{Perfect Estimation}: Known channel.
 \end{itemize}
 
 \subsubsection{Overall Performance}
 \label{sec:simulation}
-\par Fig.~\ref{fig:NMSE_all} and Fig.~\ref{fig:BER_all} present the results of NMSE and BER under different SNR conditions. Table~\ref{tab:overall} presents test NMSE at various SNR. DSS-Net achieves consistent improvement across all SNR levels. At SNR=10 dB, DSS-Net obtains $-25.11$ dB NMSE, representing 3.1 dB gain over U-Net baseline ($-22.00$ dB) and 4.6 dB over no processing ($-20.51$ dB).
+\par Table~\ref{tab:overall} presents test NMSE at various SNR. DSS-Net achieves consistent improvement across all SNR levels. At SNR=10 dB, DSS-Net obtains $-25.11$ dB NMSE, representing 3.1 dB gain over U-Net baseline ($-22.00$ dB) and 4.6 dB over no processing ($-20.51$ dB).
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=8cm]{figs/NMSE.jpg}
-	\caption{NMSE performance comparison of different channel denoising methods under varying SNR conditions.}
-	\label{fig:NMSE_all}
-\end{figure}
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=8cm]{figs/NMSE.jpg}
+%	\caption{NMSE performance comparison of different channel denoising methods under varying SNR conditions.}
+%	\label{fig:NMSE_all}
+%\end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=8cm]{figs/BER.jpg}
-	\caption{BER performance comparison of different channel denoising methods.}
-	\label{fig:BER_all}
-\end{figure}
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=8cm]{figs/BER.jpg}
+%	\caption{BER performance comparison of different channel denoising methods.}
+%	\label{fig:BER_all}
+%\end{figure}
 \begin{table}[htbp]
 	\centering
 	\caption{\textsc{Overall NMSE Performance Comparison (dB).} Normalized mean squared error of different channel denoising methods evaluated on the test set under varying input SNR conditions. DSS-Net consistently outperforms all baseline methods across all SNR levels. The ``Improvement'' row shows the gain of DSS-Net over the best baseline (U-Net). Lower NMSE values indicate better denoising performance.}
@@ -663,8 +651,8 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 		\rowcolor{tableheader}
 		\textbf{Method} & \textbf{5 dB} & \textbf{10 dB} & \textbf{15 dB} & \textbf{20 dB} \\
 		\midrule[1pt]
-		\rowcolor{tablerow2}
-		Perfect & -- & -- & -- & -- \\
+%		\rowcolor{tablerow2}
+%		Perfect & -- & -- & -- & -- \\
 		\rowcolor{tablerow1}
 		No Processing & $-16.42$ & $-20.51$ & $-25.08$ & $-29.74$ \\
 		\rowcolor{tablerow2}
@@ -672,9 +660,9 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 		\rowcolor{tablerow1}
 		Wavelet Shrinkage & $-17.89$ & $-21.74$ & $-25.98$ & $-30.41$ \\
 		\rowcolor{tablerow2}
-		CResNet~\cite{CResNet_TWC21} & $-18.76$ & $-22.65$ & $-26.82$ & $-31.23$ \\
+		CResNet & $-18.76$ & $-22.65$ & $-26.82$ & $-31.23$ \\
 		\rowcolor{tablerow1}
-		DnCNN~\cite{Zhang2017DnCNN} & $-19.21$ & $-23.14$ & $-27.31$ & $-31.67$ \\
+		DnCNN & $-19.21$ & $-23.14$ & $-27.31$ & $-31.67$ \\
 		\rowcolor{tablerow2}
 		U-Net Baseline & $-19.54$ & $-23.49$ & $-27.58$ & $-31.89$ \\
 		\rowcolor{tablebest}
@@ -689,16 +677,16 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 
 \subsubsection{Ablation Studies}
 
-\par To quantify each component's contribution, we conduct ablation studies on the test set. Table~\ref{tab:ablation_results} summarizes the results. Fig.~\ref{fig:radar_performance} presents a multi-dimensional radar chart comparing the key configurations across different performance metrics, providing an intuitive visualization of how each component affects the overall system performance.
+\par To quantify each component's contribution, we conduct ablation studies on the test set. Table~\ref{tab:ablation_results} summarizes the results, and Fig.~\ref{fig:ablation_nmse} provides a visual comparison.
 
 \begin{figure}[htbp]
 \centering
-	\includegraphics[width=8.5cm]{figs/fig_radar_performance.pdf}
-	\caption{Multi-dimensional performance comparison using radar chart. Each axis represents a normalized performance metric (higher is better). The full DSS-Net configuration (blue) dominates all dimensions, demonstrating the synergistic effect of all components.}
-	\label{fig:radar_performance}
+	\includegraphics[width=\linewidth]{figs/fig_ablation_nmse.pdf}
+	\caption{Ablation study: NMSE performance comparison across different DSS-Net configurations.}
+	\label{fig:ablation_nmse}
 \end{figure}
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
 \centering
 \caption{\textsc{Ablation Study Results on Test Set.} This table presents the normalized mean squared error (NMSE) performance of DSS-Net under different configurations. The \textbf{baseline} employs equal reconstruction weights ($\alpha_s=\alpha_d=\alpha_t=1$) without physics-informed regularization terms. Each ablation variant removes one component from the full model. The ``Gain'' column quantifies the improvement (in dB) relative to the baseline, where higher values indicate greater contribution. \textbf{Bold} values indicate the best performance; $\downarrow$ denotes lower is better for NMSE.}
 \label{tab:ablation_results}
@@ -717,7 +705,7 @@ Early stopping: Patience 20 epochs on validation loss. Typical convergence at ep
 \rowcolor{tablerow1}
 ~~w/o Temporal Loss & $-25.02$ & $-25.23$ & $-17.40$ & $+4.61$ \\
 \rowcolor{tablerow2}
-~~w/o Static Smoothness & $-24.27$ & $-24.99$ & $-17.62$ & $+3.87$ \\
+~~w/o Static Smoothness & $-24.27$ & $-24.99$ & $-17.62$ & $+3.86$ \\
 \rowcolor{tablerow1}
 ~~w/o Separation Loss & $-23.97$ & $-24.52$ & $-16.89$ & $+3.56$ \\
 \rowcolor{tablerow2}
@@ -727,7 +715,7 @@ Baseline (Equal Weights) & $-20.41$ & $-20.00$ & $-13.41$ & -- \\
 \bottomrule[1.5pt]
 \end{tabular}
 \renewcommand{\arraystretch}{1.0}
-\end{table}
+\end{table*}
 
 \par Key findings from the ablation study:
 \begin{itemize}
@@ -741,34 +729,23 @@ Baseline (Equal Weights) & $-20.41$ & $-20.00$ & $-13.41$ & -- \\
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=8.5cm]{figs/fig_sunburst_contribution.pdf}
-	\caption{Sunburst chart showing the contribution of each component to the overall improvement. The inner ring represents the total improvement (+4.86~dB), while the outer ring breaks down individual contributions. The physics-informed loss design and attention mechanism provide the largest gains.}
-	\label{fig:sunburst_contribution}
+	\includegraphics[width=\linewidth]{figs/fig_component_comparison.pdf}
+	\caption{Component-wise NMSE comparison for static and dynamic channels across different configurations.}
+	\label{fig:component_comparison}
 \end{figure}
 
-Fig.~\ref{fig:sunburst_contribution} presents a sunburst chart visualizing the contribution of each component. The static component achieves $-25.61$~dB NMSE while the dynamic component achieves $-17.37$~dB. The approximately 8~dB gap reflects the greater difficulty in denoising the rapidly-varying dynamic component, consistent with the physical characteristics analyzed in Section~\ref{sec:channel_characteristic}. The attention mechanism has a more pronounced effect on static component estimation (+1.85~dB), while the separation loss primarily benefits dynamic component accuracy (+0.52~dB), validating our physics-inspired design.
+Fig.~\ref{fig:component_comparison} presents a detailed breakdown of NMSE for static and dynamic components. The static component achieves $-25.61$~dB NMSE while the dynamic component achieves $-17.37$~dB. The approximately 8~dB gap reflects the greater difficulty in denoising the rapidly-varying dynamic component, consistent with the physical characteristics analyzed in Section~\ref{sec:channel_characteristic}. The attention mechanism has a more pronounced effect on static component estimation (+1.85~dB), while the separation loss primarily benefits dynamic component accuracy (+0.52~dB), validating our physics-inspired design.
 
 \subsubsection{Improvement Analysis}
 
 \begin{figure}[htbp]
 \centering
-	\includegraphics[width=8.5cm]{figs/fig_sankey_flow.pdf}
-	\caption{Sankey-style flow diagram illustrating how each component contributes to the overall performance improvement from baseline ($-20.41$~dB) to DSS-Net ($-25.27$~dB). Arrow widths are proportional to the contribution magnitude.}
-	\label{fig:sankey_flow}
+	\includegraphics[width=\linewidth]{figs/fig_improvement_waterfall.pdf}
+	\caption{Cumulative improvement analysis: contribution of each DSS-Net component to the overall NMSE improvement.}
+	\label{fig:improvement_waterfall}
 \end{figure}
 
-Fig.~\ref{fig:sankey_flow} presents a Sankey-style flow diagram illustrating the cumulative improvement achieved by each component relative to the baseline configuration (equal weights without physics-informed design). The flow visualization demonstrates that the physics-informed loss design provides the most significant gain (+4.86~dB), which validates that incorporating UWA channel physics---including the hierarchical importance of total/dynamic/static channels, sparsity constraints, low-rank regularization, and temporal correlation priors---is essential for achieving superior denoising performance. The attention mechanism and temporal constraints provide additional improvements of +1.52~dB and +0.25~dB, respectively.
-
-\subsubsection{Comprehensive Visualization}
-
-\begin{figure*}[htbp]
-\centering
-	\includegraphics[width=\textwidth]{figs/fig_advanced_dashboard.pdf}
-	\caption{Comprehensive performance dashboard for DSS-Net ablation study. (a) Radar chart showing multi-metric comparison across key configurations. (b) 3D bar chart visualizing component-wise NMSE. (c) Heatmap of NMSE values across configurations and component types. (d) Waterfall chart of improvement contributions. (e) Scatter plot revealing the correlation between static and dynamic NMSE. (f) Ring progress chart showing relative improvement towards optimum. (g) Grouped bar chart for comprehensive NMSE comparison. The full DSS-Net achieves the best performance across all metrics.}
-	\label{fig:advanced_dashboard}
-\end{figure*}
-
-Fig.~\ref{fig:advanced_dashboard} presents a comprehensive performance dashboard that integrates multiple visualization techniques to provide a holistic view of the ablation study results. The multi-faceted analysis reveals: (i) the full DSS-Net dominates all performance dimensions in the radar chart; (ii) the 3D visualization clearly shows the performance gap between configurations; (iii) the heatmap enables quick identification of performance patterns; (iv) the scatter plot reveals a strong correlation between static and dynamic component performance, suggesting that improvements in one component often benefit the other.
+Fig.~\ref{fig:improvement_waterfall} illustrates the cumulative improvement achieved by each component relative to the baseline configuration (equal weights without physics-informed design). The waterfall chart demonstrates that the physics-informed loss design provides the most significant gain (+4.86~dB), which validates that incorporating UWA channel physics---including the hierarchical importance of total/dynamic/static channels, sparsity constraints, low-rank regularization, and temporal correlation priors---is essential for achieving superior denoising performance. The attention mechanism and temporal constraints provide additional improvements of +1.52~dB and +0.25~dB, respectively.
 
 \subsubsection{Parameter Efficiency}
 
@@ -785,75 +762,125 @@ The 33\% latency increase is acceptable for 3.1 dB performance gain. Both achiev
 
 \subsubsection{Generalization Analysis}
 \par To evaluate the generalization capability, we test DSS-Net on unseen channel scenarios with different propagation conditions. The model achieves NMSE of $-24.3$ dB (0.8 dB degradation compared to training distribution), demonstrating robust performance across varying UWA channel conditions.
-% =========================================================================
+%====================================================================
 
 \section{Sea Trial Experiments}
-\par To validate the proposed DSS-Net in real underwater environments, sea trial experiments were conducted in Wuyuan Bay, Xiamen, China. The OFDM system parameters were consistent with those used in the simulation experiments.
-\subsection{Sea Trial Environments}
+\par To validate the proposed DSS-Net in real underwater environments, two sea trial experiments were conducted: one in Wuyuan Bay, Xiamen, China, and another in Fuxian Lake, Yunnan, China. The OFDM system parameters were consistent with those used in the simulation experiments.
+
+\subsection{Wuyuan Bay Experiment}
 \par The sea trial experiment was conducted in Wuyuan Bay, a semi-enclosed bay characterized by strong multipath interference and influenced by periodic marine environmental factors such as tides, currents, and waves. The deployment configuration of the sea trial experiment and SSP are illustrated in Fig.~\ref{fig:WuyuanBay}. The transducer was positioned at a depth of 2~m, while the hydrophones were also set at depths of 2~m, 2.5~m, and 3~m, respectively. The horizontal distance between the transmitter and receiver was approximately 1~km. The average water depth was recorded at 5.5~m. For details regarding the synchronization methodology, readers are referred to our prior work~\cite{yang2023research}, while the Doppler tracking technique is described in~\cite{tao2017dft}. The Doppler was approximately within $\pm$2~Hz due to heavy currents. BER was computed by performing a bitwise comparison between the demodulated bit sequence at the receiver and the predefined ground truth sequence transmitted. The CIRs are presented in Fig.~\ref{fig:CH11}, Fig.~\ref{fig:CH12}, and Fig.~\ref{fig:CH13}, revealing a complex multipath structure with time-varying characteristics. This complex structure arises from reflections off the boundaries of the semi-enclosed bay, with the maximum multipath spread reaching approximately 16~ms, as shown in Fig.~\ref{fig:CH11}.
 \begin{figure*}[!htbp]
 	\centering
 	\subfloat[\label{fig:WuyuanBay}]{
-		\includegraphics[width=5cm]{figs/WuyuanBay_CH11.eps}
+		\includegraphics[width=0.25\textwidth]{figs/WuyuanBay_CH11.eps}
 	}
 	\subfloat[\label{fig:CH11}]{
-		\includegraphics[width=4cm]{figs/WuyuanBay_CH11.eps}
+		\includegraphics[width=0.24\textwidth]{figs/WuyuanBay_CH11.eps}
 	}
 	\subfloat[\label{fig:CH12}]{
-		\includegraphics[width=4cm]{figs/WuyuanBay_CH12.eps}
+		\includegraphics[width=0.24\textwidth]{figs/WuyuanBay_CH12.eps}
 	}
 	\subfloat[\label{fig:CH13}]{
-		\includegraphics[width=4cm]{figs/WuyuanBay_CH13.eps}
+		\includegraphics[width=0.24\textwidth]{figs/WuyuanBay_CH13.eps}
 	}
 	\caption{Sea trial experimental setup. (a) Deployment geometry. (b) CIR at 2~m receiver depth. (c) CIR at 2.5~m receiver depth. (d) CIR at 3~m receiver depth.}
 	\label{fig:First experiment}
 \end{figure*}
-\subsection{Results and Analysis}
-\par The results of BER and OSNR in sea trial experiments are illustrated in Fig.~\ref{fig:Seatrial_BER} and Fig.~\ref{fig:Seatrial_OSNR}. The GAMP-SBL channel estimation algorithm was used in this sea trial experiment. It can be seen that the proposed DSS-Net method achieves significant BER improvement compared to conventional methods. Specifically, at moderate OSNR levels, the proposed method achieved approximate gains of 25.0\%, 8.3\%, and 20.8\% enhancement compared to the conventional, SDC, and RPS algorithms, respectively. This improvement is attributed to more precise channel estimation facilitated by using the proposed DSS-Net method. The sea trial results evidently demonstrated the superior performance of the proposed DSS-Net method in the real underwater environments, corroborating the conclusions drawn from the simulation experiments in Section~\ref{sec:simulation}.
+\subsection{Wuyuan Bay Results and Analysis}
+\par The results of BER and OSNR in the Wuyuan Bay sea trial experiments are illustrated in Fig.~\ref{fig:Seatrial_BER} and Fig.~\ref{fig:Seatrial_OSNR}. The GAMP-SBL channel estimation algorithm was used in this sea trial experiment. It can be seen that the proposed DSS-Net method achieves significant BER improvement compared to conventional methods. Specifically, at moderate OSNR levels, the proposed method achieved approximate gains of 25.0\%, 8.3\%, and 20.8\% enhancement compared to the conventional, SDC, and RPS algorithms, respectively. This improvement is attributed to more precise channel estimation facilitated by using the proposed DSS-Net method.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=8cm]{figs/Seatrial_BER.eps}
+	\includegraphics[width=\linewidth]{figs/Seatrial_BER.eps}
 	\caption{BER performance comparison in sea trial experiments.}\label{fig:Seatrial_BER}
 \end{figure}
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=8cm]{figs/Seatrial_OSNR.eps}
-	\caption{Output SNR comparison in sea trial experiments.}\label{fig:Seatrial_OSNR}
-\end{figure}
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=8cm]{figs/Seatrial_OSNR.eps}
+%	\caption{Output SNR comparison in sea trial experiments.}\label{fig:Seatrial_OSNR}
+%\end{figure}
 \begin{figure*}[!htbp]
 	\centering
 	\subfloat[Conventional]
 	{
 		\label{fig:scatterplot_GAON}
-		\includegraphics[width=4cm]{figs/est_QPSK_GAON.eps}
+		\includegraphics[width=0.24\textwidth]{figs/est_QPSK_GAON.eps}
 	}
 	\subfloat[DSS-Net]
 	{
 		\label{fig:scatterplot_DSSNet}
-		\includegraphics[width=4cm]{figs/est_QPSK_GIAON.eps}
+		\includegraphics[width=0.24\textwidth]{figs/est_QPSK_GIAON.eps}
 	}
 	\subfloat[w/o Attention]
 {
 		\label{fig:scatterplot_noatt}
-		\includegraphics[width=4cm]{figs/est_QPSK_GIAON.eps}
+		\includegraphics[width=0.24\textwidth]{figs/est_QPSK_GIAON.eps}
 }
 	\subfloat[w/o Separation]
 {
 		\label{fig:scatterplot_nosep}
-		\includegraphics[width=4cm]{figs/est_QPSK_GIAON.eps}
+		\includegraphics[width=0.24\textwidth]{figs/est_QPSK_GIAON.eps}
 }
-	\caption{Output constellation diagram in sea trial experiments. (a) Conventional method. (b) DSS-Net. (c) DSS-Net w/o Attention. (d) DSS-Net w/o Separation.}
+	\caption{Output constellation diagram in the Wuyuan Bay experiment. (a) Conventional method. (b) DSS-Net. (c) DSS-Net w/o Attention. (d) DSS-Net w/o Separation.}
 	\label{fig:scatterplot}
 \end{figure*}
+
+\subsection{Fuxian Lake Experiment}
+\par A second sea trial was conducted in Fuxian Lake, Yunnan Province, China---the third deepest freshwater lake in China with a maximum depth of 155~m and exceptionally clear water (Secchi depth $>$12~m). Unlike the semi-enclosed shallow-water environment of Wuyuan Bay, Fuxian Lake provides a distinct propagation environment characterized by deep-water acoustics and minimal surface wave activity. The acoustic modem was deployed at depths of 5~m, 7~m, and 9~m, with a horizontal communication distance of approximately 484~m. The water depth at the experimental site was approximately 50~m.
+
+\par Since ground-truth channel matrices are unavailable in real environments, we employ alternative metrics to evaluate DSS-Net performance. The \textit{denoising gain} quantifies the noise energy removed from the channel:
+\begin{equation}
+	\text{Gain}_{\text{dB}} = 10\log_{10}\frac{P_{\text{input}}}{P_{\text{output}}},
+\end{equation}
+where $P_{\text{input}}$ and $P_{\text{output}}$ denote the power of input (noisy) and output (denoised) channels, respectively. The \textit{estimated SNR improvement} is computed as:
+\begin{equation}
+	\Delta\text{SNR}_{\text{est}} = 10\log_{10}\frac{P_{\text{output}}}{P_{\text{input}} - P_{\text{output}}}.
+\end{equation}
+
+\par Table~\ref{tab:fuxian_results} summarizes the Fuxian Lake experimental results. Several physically meaningful observations emerge:
+\begin{itemize}
+	\item \textbf{Depth-dependent dynamic ratio}: As receiver depth increases from 5~m to 9~m, the dynamic component ratio increases from 23.8\% to 29.0\%. This is consistent with acoustic propagation physics: at greater depths, the receiver captures more surface-reflected paths, which are classified as dynamic components due to their time-varying nature.
+	\item \textbf{Consistent denoising performance}: DSS-Net achieves positive denoising gains (1.31--2.39~dB) across all depths, demonstrating robust generalization to unseen real-world channels.
+	\item \textbf{Component separation}: The static-to-dynamic power ratios (2.3--2.9:1) are consistent with the expected dominance of stable propagation paths in the relatively calm lake environment.
+\end{itemize}
+
+\begin{table}[htbp]
+	\centering
+	\caption{\textsc{Fuxian Lake Sea Trial Results.} Performance metrics of DSS-Net evaluated on real channel measurements at different receiver depths. Denoising gain and estimated SNR improvement quantify the noise reduction achieved. Static/Dynamic ratios reflect the learned channel decomposition.}
+	\label{tab:fuxian_results}
+	\renewcommand{\arraystretch}{1.15}
+	\setlength{\tabcolsep}{4pt}
+	\small
+	\begin{tabular}{>{\centering\arraybackslash}p{1.2cm} >{\centering\arraybackslash}p{1.4cm} >{\centering\arraybackslash}p{1.5cm} >{\centering\arraybackslash}p{1.3cm} >{\centering\arraybackslash}p{1.3cm}}
+		\toprule[1.5pt]
+		\rowcolor{tableheader}
+		\textbf{Depth} & \textbf{Denoising} & \textbf{Est. SNR} & \textbf{Static} & \textbf{Dynamic} \\
+		\rowcolor{tableheader}
+		\textbf{(m)} & \textbf{Gain (dB)} & \textbf{Improv. (dB)} & \textbf{Ratio} & \textbf{Ratio} \\
+		\midrule[1pt]
+		\rowcolor{tablerow1}
+		5 & 2.39 & 4.99 & 69.3\% & 23.8\% \\
+		\rowcolor{tablerow2}
+		7 & 1.38 & 7.29 & 65.3\% & 24.6\% \\
+		\rowcolor{tablerow1}
+		9 & 1.31 & 7.46 & 52.8\% & 29.0\% \\
+		\bottomrule[1.5pt]
+	\end{tabular}
+	\renewcommand{\arraystretch}{1.0}
+\end{table}
+
+\par The Fuxian Lake results, combined with the Wuyuan Bay experiments, demonstrate that DSS-Net generalizes effectively across diverse underwater environments---from shallow semi-enclosed bays with strong multipath to deep freshwater lakes with clearer propagation conditions. The consistent physical interpretability of the learned decomposition (increasing dynamic ratio with depth) provides confidence that DSS-Net captures meaningful acoustic propagation structures rather than arbitrary signal partitions.
+
 % =========================================================================
 \section{Conclusion}
 
-This paper proposed DSS-Net, a physics-inspired deep learning framework for UWA channel denoising via explicit dynamic-static decomposition. The key innovation lies in incorporating the physical characteristics of UWA channels---static components from stable propagation paths exhibiting Gaussian-distributed amplitude, and dynamic components from time-varying sea surface reflections exhibiting Gamma-distributed amplitude---into both the network architecture and loss function design.
+This paper has proposed DSS-Net, a physics-inspired deep learning framework for UWA channel denoising through explicit dynamic-static decomposition. The key innovation lies in incorporating physical characteristics of UWA channels---static components from stable propagation paths with temporal consistency and sparsity, and dynamic components from time-varying sea surface reflections with low-rank structure---into both the network architecture and loss function design.
 
-Experimental results demonstrate that DSS-Net achieves $-25.27$~dB NMSE on the test set, representing a 4.86~dB improvement over baseline configurations. The ablation studies reveal the critical importance of physics-informed loss design: the hierarchical reconstruction weights derived from channel physics contribute the most significant improvement (+4.86~dB), while the attention mechanism (+1.52~dB), temporal constraints, and separation loss further enhance performance. Sea trial experiments in Xiamen Harbor validate the effectiveness in real underwater environments.
+Simulation experiments on a large-scale ray-tracing dataset demonstrate that DSS-Net achieves $-25.27$~dB NMSE, representing a 4.86~dB improvement over baseline configurations. Ablation studies reveal the critical importance of physics-informed loss design, with hierarchical reconstruction weights, attention mechanisms, temporal constraints, and separation loss collectively contributing to the performance gains.
 
-The proposed framework demonstrates that systematically incorporating domain knowledge---including channel decomposition structure, component-specific statistical properties, sparsity/low-rank priors, and temporal correlation characteristics---into deep learning can significantly outperform black-box approaches, opening new directions for physics-inspired UWA channel estimation.
+Two sea trial experiments were conducted to validate DSS-Net in real underwater environments. In the shallow semi-enclosed Wuyuan Bay, DSS-Net achieved 25.0\% BER improvement over conventional methods. In the deep freshwater Fuxian Lake, the learned channel decomposition exhibited physically consistent behavior: the dynamic component ratio increased with receiver depth (23.8\% at 5~m to 29.0\% at 9~m), reflecting the expected increase in surface-reflected paths---a strong indication that DSS-Net captures meaningful acoustic propagation structures rather than arbitrary signal partitions.
+
+The proposed framework demonstrates that systematically incorporating domain knowledge---including channel decomposition structure, component-specific statistical properties, sparsity/low-rank priors, and temporal correlation characteristics---into deep learning can significantly outperform black-box approaches. Future work will extend DSS-Net to time-varying channel tracking and integrate it with adaptive modulation and coding schemes for complete UWA communication systems.
 
 % =========================================================================
 \appendices
@@ -861,7 +888,7 @@ The proposed framework demonstrates that systematically incorporating domain kno
 
 We prove the correlation bound under random scatterer distribution.
 
-Let $\bm{H}_s$ be $k$-sparse in angular domain: $\|\bm{F}^H\bm{H}_s\bm{F}\|_0=k$. Let $\bm{H}_d=\bm{U}\bm{\Sigma}\bm{V}^H$ have rank $r$ with incoherent singular vectors satisfying $\|\bm{U}\|_{\infty}^2\leq\mu r/M$ and $\|\bm{V}\|_{\infty}^2\leq\mu r/N$ for incoherence parameter $\mu$ \cite{Candes2009Exact}.
+Let $\bm{H}_s$ be $k$-sparse in Delay-Doppler domain: $\|\bm{F}^H\bm{H}_s\|_0=k$. Let $\bm{H}_d=\bm{U}\bm{\Sigma}\bm{V}^H$ have rank $r$ with incoherent singular vectors satisfying $\|\bm{U}\|_{\infty}^2\leq\mu r/M$ and $\|\bm{V}\|_{\infty}^2\leq\mu r/N$ for incoherence parameter $\mu$ \cite{Candes2009Exact}.
 
 The Frobenius inner product is
 \begin{equation}
@@ -883,7 +910,7 @@ Therefore:
 \rho(\bm{H}_s,\bm{H}_d)=\frac{|\langle\bm{H}_s,\bm{H}_d\rangle_F|}{\|\bm{H}_s\|_F\|\bm{H}_d\|_F}\lesssim\sqrt{\frac{kr}{MN}}.
 \end{equation}
 
-This justifies our separation loss minimizing correlation. $\square$
+This justifies our separation loss minimizing correlation.
 
 \section{Nuclear Norm Gradient}
 
@@ -896,7 +923,7 @@ Detailed derivation follows \cite{Watson1992Characterization}. In practice, comp
 
 % =========================================================================
 \section*{Acknowledgments}
-The authors thank the anonymous reviewers for constructive feedback. X. Yang proposed the dynamic-static separation conceptualization for DSS-Net, generated the dataset with ground-truth decomposition labels, performed sea trial experimental validation, and provided physical insights for the channel model. Y. Chen designed the network architecture, derived the theoretical analysis, implemented the training pipeline, and conducted ablation studies.
+The authors thank the anonymous reviewers for constructive feedback.
 
 % =========================================================================
 \bibliographystyle{IEEEtran}
