@@ -84,15 +84,24 @@ pip install torch numpy scipy matplotlib pyyaml tqdm pandas
 
 ### 预训练模型下载
 
-由于模型文件较大（~500MB），请从以下链接下载：
+模型文件托管在 Hugging Face：
 
-```
-# TODO: 添加下载链接
-```
+🤗 **[cyd0806/dss_net_checkpoints](https://huggingface.co/cyd0806/dss_net_checkpoints)**
 
-下载后放置于：
-```
-dss_net/results_20251104_092511/full/.../checkpoints/best.pth
+| 模型 | 文件 | 大小 | NMSE |
+|------|------|------|------|
+| **DSS-Net (Full)** | `dss_net_full_best.pth` | 499MB | -25.27 dB |
+| Baseline U-Net | `baseline_unet_best.pth` | 355MB | -20.41 dB |
+
+**下载方式：**
+
+```bash
+# 使用 huggingface-cli
+pip install huggingface_hub
+huggingface-cli download cyd0806/dss_net_checkpoints dss_net_full_best.pth --local-dir ./checkpoints
+
+# 或直接下载
+wget https://huggingface.co/cyd0806/dss_net_checkpoints/resolve/main/dss_net_full_best.pth
 ```
 
 ### 训练模型
